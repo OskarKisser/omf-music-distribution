@@ -24,13 +24,15 @@ import { pickProfileGreetingName, useAuthProfile } from "@/lib/hooks/useAuthProf
 import { cn } from "@/lib/utils";
 import { pickHeroArtistName } from "@/lib/artist-name";
 import { RejectionNotice } from "@/components/RejectionNotice";
-import { getReleaseNextStep, NEXT_STEP_TONE_CLASS } from "@/lib/release-next-step";
+import { getReleaseNextStep, NEXT_STEP_TONE_CLASS, pluralRu } from "@/lib/release-next-step";
+import { releaseTypeLabel } from "@/lib/release-type-label";
+import { ReleaseSleeve } from "@/components/ReleaseSleeve";
 import { describeRejection, type RejectionSummary } from "@/lib/rejection-reasons";
 import { getTelegramInitDataForApiHeader, getTelegramUserIdForSupabaseRequests } from "@/lib/telegram";
 import { FullScreenLoader } from "@/components/FullScreenLoader";
 
 
-type LibraryStatusFilter = "all" | "processing" | "ready" | "failed";
+type LibraryStatusFilter = "all" | "processing" | "ready" | "failed" | "draft";
 type LibraryView = "all" | "drafts" | "moderation";
 
 /** Фильтр по статусу нужен, когда релизов много; на коротком списке статус и так виден у каждой строки. */
@@ -40,8 +42,17 @@ const STATUS_FILTER_CHIPS: { id: LibraryStatusFilter; label: string }[] = [
   { id: "all", label: "Все" },
   { id: "processing", label: "На проверке" },
   { id: "ready", label: "Приняты" },
-  { id: "failed", label: "Отклонены" }
+  { id: "failed", label: "Вернули" },
+  { id: "draft", label: "Черновики" }
 ];
+
+/** Черновик и «не отправлен» — один фильтр: артисту в обоих случаях надо дописать и отправить. */
+function matchesStatusFilter(status: string | null | undefined, filter: LibraryStatusFilter): boolean {
+  if (filter === "all") return true;
+  const s = normalizeReleaseStatus(status);
+  if (filter === "draft") return s === "draft" || s === "pending";
+  return s === filter;
+}
 
 function parseLibraryView(value: string | null): LibraryView {
   if (value === "drafts" || value === "moderation") return value;
@@ -220,8 +231,22 @@ function LibraryPageInner() {
   const filteredReleases = useMemo(() => {
     if (selectedView !== "all") return viewFilteredReleases;
     if (statusFilter === "all") return viewFilteredReleases;
-    return viewFilteredReleases.filter((r) => normalizeReleaseStatus(r.status) === statusFilter);
+    return viewFilteredReleases.filter((r) => matchesStatusFilter(r.status, statusFilter));
   }, [viewFilteredReleases, selectedView, statusFilter]);
+
+  const statusCounts = useMemo(() => {
+    const out = {} as Record<LibraryStatusFilter, number>;
+    for (const chip of STATUS_FILTER_CHIPS) {
+      out[chip.id] = releases.filter((r) => matchesStatusFilter(r.status, chip.id)).length;
+    }
+    return out;
+  }, [releases]);
+
+  /** Вернули на доработку — первым делом наверху, а не где-то в списке. */
+  const returnedReleases = useMemo(
+    () => releases.filter((r) => normalizeReleaseStatus(r.status) === "failed"),
+    [releases]
+  );
 
   const handleCreate = useCallback(() => {
     hapticMap.impactLight();
@@ -362,7 +387,12 @@ function LibraryPageInner() {
         artist={release.artist_name}
         coverUrl={release.artwork_url}
         kind={nextStep.kind}
-        statusLine={{ text: nextStep.cardLine || nextStep.title, className: NEXT_STEP_TONE_CLASS[nextStep.tone] }}
+        statusLine={{
+          text: [releaseTypeLabel(release.release_type), nextStep.cardLine || nextStep.title]
+            .filter(Boolean)
+            .join(" · "),
+          className: NEXT_STEP_TONE_CLASS[nextStep.tone]
+        }}
         priority={listIndex < 6}
         busy={isDraft && resumingId === release.id}
         isNew={isUnseenDecision(normalized, seenStatuses[release.id])}
@@ -371,8 +401,16 @@ function LibraryPageInner() {
     );
   };
 
-  const heroLabel =
-    selectedView === "drafts" ? "Твои черновики" : selectedView === "moderation" ? "На модерации" : "Твои релизы";
+  const heroTitle =
+    selectedView === "drafts" ? "Черновики" : selectedView === "moderation" ? "На модерации" : "Релизы";
+  const firstReturned = returnedReleases[0] ?? null;
+  const firstReturnedReason = firstReturned
+    ? describeRejection({
+        adminNotes: firstReturned.admin_notes,
+        errorMessage: firstReturned.error_message,
+        rejectionReasons: firstReturned.rejection_reasons
+      }).message.split("\n")[0]
+    : "";
 
   return (
     <div className="min-h-app text-omf-ink">
@@ -386,32 +424,69 @@ function LibraryPageInner() {
 
       <div className={cn("mx-auto w-full px-1 pb-40 pt-6", isWeb ? "max-w-[1100px]" : "max-w-lg")}>
         {showEmptyState && isEmpty ? null : (
-        <header className="mb-6 flex items-end justify-between gap-4">
-          <div className="min-w-0">
-            <p className="text-[13px] text-omf-graphite">{heroLabel}</p>
+        <header className="mb-6">
+          <div className="flex items-center justify-between gap-3">
             <Link
               href="/settings"
               onClick={() => hapticMap.impactLight()}
               aria-label={`Профиль: ${heroArtistName}`}
-              className="omf-focus group mt-1 inline-flex max-w-full items-center gap-1 rounded-[6px]"
+              className="omf-focus group flex min-w-0 items-center gap-2.5 rounded-full pr-2"
             >
-              <h1 className="min-w-0 break-words text-[36px] font-bold leading-[0.95] tracking-[-0.05em] text-omf-ink sm:text-[48px]">
-                {heroArtistName}
-              </h1>
-              <ChevronRight
-                className="h-6 w-6 shrink-0 text-omf-faint transition-colors group-hover:text-omf-graphite"
+              <span
                 aria-hidden
-              />
+                className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-omf-ultra text-[15px] font-semibold text-white"
+              >
+                {(heroArtistName.trim()[0] ?? "?").toUpperCase()}
+              </span>
+              <span className="min-w-0">
+                <span className="block truncate text-[15px] font-semibold text-omf-ink">{heroArtistName}</span>
+                {hasReleases ? (
+                  <span className="block text-[13px] text-omf-graphite">
+                    {releases.length} {pluralRu(releases.length, ["релиз", "релиза", "релизов"])}
+                  </span>
+                ) : null}
+              </span>
             </Link>
+            <button
+              type="button"
+              onClick={handleCreate}
+              className="omf-focus flex h-10 shrink-0 items-center gap-1.5 rounded-full bg-omf-ink px-4 text-[15px] font-semibold text-omf-bg transition-transform active:scale-95"
+            >
+              <Plus className="h-4 w-4" strokeWidth={2.4} aria-hidden />
+              Новый релиз
+            </button>
           </div>
-          <button
-            type="button"
-            onClick={handleCreate}
-            aria-label="Новый релиз"
-            className="omf-focus mt-1 flex h-[42px] w-[42px] shrink-0 items-center justify-center rounded-full bg-omf-ink text-omf-bg transition-transform active:scale-95"
-          >
-            <Plus className="h-5 w-5" strokeWidth={2} aria-hidden />
-          </button>
+          <h1 className="mt-6 text-[32px] font-bold leading-none tracking-[-0.045em] text-omf-ink">{heroTitle}</h1>
+          {firstReturned && selectedView === "all" ? (
+            <button
+              type="button"
+              onClick={() => openRelease(firstReturned)}
+              className="omf-focus mt-4 flex w-full items-center gap-3 rounded-[14px] bg-[rgba(229,72,77,0.12)] px-3.5 py-3 text-left transition-transform active:scale-[0.98]"
+            >
+              <span className="block w-10 shrink-0">
+                <ReleaseSleeve
+                  seed={firstReturned.id}
+                  title={getReleaseDisplayTitle(firstReturned) || "Без названия"}
+                  coverUrl={firstReturned.artwork_url}
+                  size="thumb"
+                />
+              </span>
+              <span className="min-w-0 flex-1">
+                <span className="block truncate text-[15px] font-semibold text-omf-ink">
+                  {returnedReleases.length > 1
+                    ? `${returnedReleases.length} ${pluralRu(returnedReleases.length, ["релиз", "релиза", "релизов"])} вернули`
+                    : `«${getReleaseDisplayTitle(firstReturned) || "Без названия"}» вернули`}
+                </span>
+                <span className="block truncate text-[13px] text-[#ff9a9d]">
+                  {firstReturnedReason || "Посмотри замечания модератора"}
+                </span>
+              </span>
+              <span className="flex shrink-0 items-center text-[14px] font-semibold text-omf-ink">
+                Исправить
+                <ChevronRight className="h-4 w-4" aria-hidden />
+              </span>
+            </button>
+          ) : null}
         </header>
         )}
 
@@ -457,6 +532,8 @@ function LibraryPageInner() {
               >
                 {STATUS_FILTER_CHIPS.map((chip) => {
                   const active = statusFilter === chip.id;
+                  const count = statusCounts[chip.id] ?? 0;
+                  if (chip.id !== "all" && count === 0) return null;
                   return (
                     <button
                       key={chip.id}
@@ -468,13 +545,12 @@ function LibraryPageInner() {
                         setStatusFilter(chip.id);
                       }}
                       className={cn(
-                        "omf-focus shrink-0 rounded-full px-3.5 py-1.5 text-[13px] transition-colors",
-                        active
-                          ? "bg-omf-ink font-medium text-omf-bg"
-                          : "text-omf-graphite hover:text-omf-ink"
+                        "omf-focus shrink-0 rounded-full px-3.5 py-1.5 text-[14px] transition-colors",
+                        active ? "bg-omf-surface-2 font-medium text-omf-ink" : "text-omf-graphite hover:text-omf-ink"
                       )}
                     >
                       {chip.label}
+                      <span className="ml-1 tabular-nums text-omf-faint">{count}</span>
                     </button>
                   );
                 })}
@@ -489,7 +565,7 @@ function LibraryPageInner() {
               <p className="mb-6 text-[14px] text-omf-graphite">Здесь пока пусто.</p>
             )}
 
-            <div className={cn("flex flex-col gap-2", isWeb && "sm:grid sm:grid-cols-2 sm:gap-3")}>
+            <div className={cn("flex flex-col gap-1", isWeb && "sm:grid sm:grid-cols-2 sm:gap-x-6 sm:gap-y-1")}>
               {filteredReleases.map((release, i) => renderReleaseRow(release, i))}
             </div>
 

@@ -95,7 +95,7 @@ export function AdminTakedownPanel({
 
   return (
     <section
-      className="mb-4 rounded-2xl border border-omf-red/40 bg-omf-red/10 p-4"
+      className="mb-4 rounded-2xl border border-[rgba(229,72,77,0.4)] bg-[rgba(229,72,77,0.1)] p-4"
       aria-label="Артист просит удалить релиз"
     >
       <p className="text-[15px] font-semibold">Артист просит удалить релиз с площадок</p>

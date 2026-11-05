@@ -24,7 +24,8 @@ const RELEASE_LIST_SELECT = [
   "isrc",
   "upc",
   "release_type",
-  "smart_link"
+  "smart_link",
+  "release_date"
 ].join(",");
 /** `rejection_reasons` — из миграции 20261012190000; без неё список грузится по базовому набору. */
 const RELEASE_LIST_SELECT_WITH_REASONS = `${RELEASE_LIST_SELECT},rejection_reasons`;
@@ -49,6 +50,7 @@ type ReleaseListBaseRow = Pick<
   | "upc"
   | "release_type"
   | "smart_link"
+  | "release_date"
   | "rejection_reasons"
 >;
 

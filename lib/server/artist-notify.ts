@@ -7,8 +7,17 @@ type NotifiableRelease = {
   user_uuid?: string | null;
 };
 
-/** Уважает настройку «Уведомления» (user_preferences.push_notifications). Ошибки → считаем, что можно. */
-async function isPushEnabled(record: NotifiableRelease, telegramId: string): Promise<boolean> {
+/** Какой переключатель профиля отвечает за сообщение. */
+export type ArtistNotifyKind = "release" | "draft_reminder" | "release_day";
+
+const PREF_COLUMN: Record<ArtistNotifyKind, string> = {
+  release: "push_notifications",
+  draft_reminder: "notify_draft_reminder",
+  release_day: "notify_release_day"
+};
+
+/** Уважает переключатели в профиле (user_preferences). Ошибки и нет колонки → считаем, что можно. */
+async function isPushEnabled(record: NotifiableRelease, telegramId: string, kind: ArtistNotifyKind): Promise<boolean> {
   try {
     const admin = createSupabaseAdmin();
     if (!admin) return true;
@@ -20,10 +29,10 @@ async function isPushEnabled(record: NotifiableRelease, telegramId: string): Pro
     if (!uuid) return true;
     const { data } = await admin
       .from("user_preferences")
-      .select("push_notifications")
+      .select("*")
       .eq("user_uuid", uuid)
       .maybeSingle();
-    return data?.push_notifications !== false;
+    return (data as Record<string, unknown> | null)?.[PREF_COLUMN[kind]] !== false;
   } catch {
     return true;
   }
@@ -35,10 +44,14 @@ async function isPushEnabled(record: NotifiableRelease, telegramId: string): Pro
  * Возвращает `false`, если сообщение не отправляли.
  * Веб-пользователи видят изменения статуса в приложении (метка «Новое» в списке релизов).
  */
-export async function notifyArtist(record: NotifiableRelease, text: string): Promise<boolean> {
+export async function notifyArtist(
+  record: NotifiableRelease,
+  text: string,
+  kind: ArtistNotifyKind = "release"
+): Promise<boolean> {
   const tid = artistTelegramId(record);
   if (!tid) return false;
-  if (!(await isPushEnabled(record, tid))) return false;
+  if (!(await isPushEnabled(record, tid, kind))) return false;
   await sendTelegramNotification(tid, text);
   return true;
 }

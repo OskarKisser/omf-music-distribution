@@ -8,9 +8,23 @@ import { getUserProfileByTelegramId } from "@/lib/auth/hybrid-auth";
 
 export type UserPreferences = {
   user_uuid: string;
+  /** Решение модератора и другие события по релизу. */
   push_notifications: boolean;
+  notify_draft_reminder: boolean;
+  notify_release_day: boolean;
   updated_at: string;
 };
+
+/** Строка из БД → настройки; до миграции новых колонок там нет — считаем включёнными. */
+function toPreferences(row: Record<string, unknown>, userUuid: string): UserPreferences {
+  return {
+    user_uuid: userUuid,
+    push_notifications: row.push_notifications !== false,
+    notify_draft_reminder: row.notify_draft_reminder !== false,
+    notify_release_day: row.notify_release_day !== false,
+    updated_at: typeof row.updated_at === "string" ? row.updated_at : new Date().toISOString()
+  };
+}
 
 // ─── GET ─────────────────────────────────────────────────────────────────────
 
@@ -31,9 +45,7 @@ async function handleGetPreferences(
 
   const { data, error } = await admin
     .from("user_preferences")
-    .select(
-      "user_uuid, push_notifications, updated_at"
-    )
+    .select("*")
     .eq("user_uuid", userProfile.id)
     .maybeSingle();
 
@@ -42,19 +54,8 @@ async function handleGetPreferences(
     return NextResponse.json({ ok: false, error: "Не удалось загрузить настройки." }, { status: 500 });
   }
 
-  if (!data) {
-    // Return defaults when the row doesn't exist yet
-    return NextResponse.json({
-      ok: true,
-      preferences: {
-        user_uuid: userProfile.id,
-        push_notifications: true,
-        updated_at: new Date().toISOString()
-      } satisfies UserPreferences
-    });
-  }
-
-  return NextResponse.json({ ok: true, preferences: data as UserPreferences });
+  // Строки ещё нет — всё включено по умолчанию.
+  return NextResponse.json({ ok: true, preferences: toPreferences(data ?? {}, userProfile.id) });
 }
 
 export const GET = withTelegramAuth(handleGetPreferences);
@@ -62,7 +63,9 @@ export const GET = withTelegramAuth(handleGetPreferences);
 // ─── POST (upsert) ────────────────────────────────────────────────────────────
 
 const upsertSchema = z.object({
-  push_notifications: z.boolean().optional()
+  push_notifications: z.boolean().optional(),
+  notify_draft_reminder: z.boolean().optional(),
+  notify_release_day: z.boolean().optional()
 });
 
 async function handlePostPreferences(
@@ -103,7 +106,7 @@ async function handlePostPreferences(
   const { data, error } = await admin
     .from("user_preferences")
     .upsert(payload, { onConflict: "user_uuid" })
-    .select("user_uuid, push_notifications, updated_at")
+    .select("*")
     .maybeSingle();
 
   if (error) {
@@ -111,7 +114,7 @@ async function handlePostPreferences(
     return NextResponse.json({ ok: false, error: "Не удалось сохранить настройки." }, { status: 500 });
   }
 
-  return NextResponse.json({ ok: true, preferences: data as UserPreferences });
+  return NextResponse.json({ ok: true, preferences: toPreferences(data ?? payload, userProfile.id) });
 }
 
 export const POST = withTelegramAuth(handlePostPreferences);

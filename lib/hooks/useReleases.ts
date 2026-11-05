@@ -40,6 +40,7 @@ type ReleaseListBaseRow = Pick<
   | "upc"
   | "release_type"
   | "smart_link"
+  | "release_date"
   | "rejection_reasons"
 >;
 

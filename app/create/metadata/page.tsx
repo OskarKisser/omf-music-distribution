@@ -404,17 +404,29 @@ function CreateMetadataPageInner() {
   }, []);
 
   /** Сколько обязательных полей паспорта ещё пусто — подсказка под закреплённой кнопкой. */
-  const missingRequired = [
-    values.primaryArtist,
-    values.releaseTitle,
-    values.genre,
-    values.language,
-    values.releaseDate,
-    values.authorFullName,
-    values.musicAuthor,
-    values.licenseType,
-    values.tiktokStart
-  ].filter((v) => !(typeof v === "string" ? v.trim() : v)).length;
+  const missingFields = (
+    [
+      [values.primaryArtist, "артист"],
+      [values.releaseTitle, "название"],
+      [values.genre, "жанр"],
+      [values.language, "язык"],
+      [values.releaseDate, "дата"],
+      [values.authorFullName, "ФИО"],
+      [values.musicAuthor, "автор бита"],
+      [values.licenseType, "условия бита"],
+      [values.tiktokStart, "отрывок для TikTok"]
+    ] as const
+  )
+    .filter(([v]) => !(typeof v === "string" ? v.trim() : v))
+    .map(([, label]) => label);
+  const missingRequired = missingFields.length;
+  /** Называем поля словами: «осталось 8 полей» не говорит, куда смотреть. */
+  const missingNote =
+    missingRequired === 0
+      ? "Всё заполнено"
+      : missingRequired <= 3
+        ? `Осталось: ${missingFields.join(", ")}`
+        : `Осталось ${missingRequired} ${pluralRu(missingRequired, ["поле", "поля", "полей"])}: ${missingFields.slice(0, 3).join(", ")}…`;
 
   const canProceed =
     Boolean(values.primaryArtist?.trim()) &&
@@ -787,7 +799,7 @@ function CreateMetadataPageInner() {
             </section>
 
             <WizardActionBar
-              note={missingRequired > 0 ? `Осталось заполнить ${missingRequired} ${pluralRu(missingRequired, ["поле", "поля", "полей"])}` : "Всё заполнено"}
+              note={missingNote}
             >
               <button
                 type="submit"

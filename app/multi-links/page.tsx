@@ -2,6 +2,11 @@
 
 import { Suspense, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
+import { SmartLinkHero } from "@/components/links/SmartLinkHero";
+import { ReleaseSleeve } from "@/components/ReleaseSleeve";
+import { normalizeReleaseStatus } from "@/lib/release-status";
+import { DSP_REVIEW_DAYS_TEXT } from "@/lib/release-next-step";
 import { AuthGuard } from "@/components/AuthGuard";
 import { MultiLinkReleaseRow } from "@/components/MultiLinkReleaseRow";
 import { PullRefreshBrand } from "@/components/PullRefreshBrand";
@@ -73,14 +78,26 @@ function MultiLinksPageInner() {
   }, [withLinks, query, sort]);
 
   const showSkeleton = !authReady || userId == null || isBootstrapping;
+  const searching = normalizeSearch(query).length > 0;
+  /** Самая свежая ссылка — крупно; при поиске показываем просто список совпадений. */
+  const hero = !searching && sort === "date_desc" ? filtered[0] ?? null : null;
+  const rest = hero ? filtered.slice(1) : filtered;
+  /** Приняты, но ссылки ещё нет, или на проверке — чтобы было видно, что ссылки скоро будут. */
+  const upcoming = useMemo(
+    () =>
+      releases.filter((r) => {
+        const s = normalizeReleaseStatus(r.status);
+        return (s === "ready" && !(r.smart_link?.trim() ?? "")) || s === "processing";
+      }),
+    [releases]
+  );
 
   return (
     <div className="mx-auto min-h-app w-full max-w-lg px-1 pb-40 pt-6 text-omf-ink">
       <PullRefreshBrand />
       <ScreenHeader
-        label="Готовые релизы"
         title="Ссылки"
-        intro="Одна ссылка на все площадки. Копируй и отправляй слушателям."
+        intro="Одна ссылка на все площадки — отправь слушателям в день выхода."
       />
 
       {withLinks.length >= SEARCH_MIN_LINKS ? (
@@ -142,7 +159,7 @@ function MultiLinksPageInner() {
               ? "Ссылка появится здесь, когда модератор одобрит релиз и площадки его опубликуют."
               : "Попробуй другое название или имя артиста."}
           </p>
-          {withLinks.length === 0 && (
+          {withLinks.length === 0 && upcoming.length === 0 && (
             <button
               onClick={() => {
                 prepareNewReleaseDraft();
@@ -155,20 +172,83 @@ function MultiLinksPageInner() {
           )}
         </div>
       ) : (
-        <div className="flex flex-col gap-2">
-          {filtered.map((r, i) => (
-            <MultiLinkReleaseRow
-              key={r.id}
-              releaseId={r.id}
-              title={getReleaseDisplayTitle(r)}
-              artist={(r.artist_name ?? "").trim() || "Артист"}
-              smartLink={r.smart_link!.trim()}
-              coverUrl={r.artwork_url}
-              index={i}
+        <>
+          {hero ? (
+            <SmartLinkHero
+              releaseId={hero.id}
+              title={getReleaseDisplayTitle(hero)}
+              artist={(hero.artist_name ?? "").trim() || "Артист"}
+              smartLink={hero.smart_link!.trim()}
+              coverUrl={hero.artwork_url}
+              releaseType={hero.release_type}
+              releaseDate={hero.release_date}
             />
-          ))}
-        </div>
+          ) : null}
+          {rest.length > 0 ? (
+            <section aria-labelledby={hero ? "links-more" : undefined}>
+              {hero ? (
+                <h2 id="links-more" className="mb-1 text-[15px] font-semibold text-omf-graphite">
+                  Другие ссылки
+                </h2>
+              ) : null}
+              <div className="flex flex-col gap-1">
+                {rest.map((r, i) => (
+                  <MultiLinkReleaseRow
+                    key={r.id}
+                    releaseId={r.id}
+                    title={getReleaseDisplayTitle(r)}
+                    artist={(r.artist_name ?? "").trim() || "Артист"}
+                    smartLink={r.smart_link!.trim()}
+                    coverUrl={r.artwork_url}
+                    index={i}
+                  />
+                ))}
+              </div>
+            </section>
+          ) : null}
+        </>
       )}
+
+      {!showSkeleton && !searching && upcoming.length > 0 ? (
+        <section aria-labelledby="links-soon" className="mt-8">
+          <h2 id="links-soon" className="mb-1 text-[15px] font-semibold text-omf-graphite">
+            Скоро
+          </h2>
+          <ul className="flex flex-col">
+            {upcoming.map((r) => {
+              const waiting = normalizeReleaseStatus(r.status) === "processing";
+              return (
+                <li key={r.id}>
+                  <Link
+                    href={`/release/${r.id}`}
+                    className="omf-focus -mx-2 grid grid-cols-[48px_1fr] items-center gap-3.5 rounded-[14px] px-2 py-2 transition-colors hover:bg-omf-surface"
+                  >
+                    <span className="block w-12">
+                      <ReleaseSleeve
+                        seed={r.id}
+                        title={getReleaseDisplayTitle(r)}
+                        artist={r.artist_name}
+                        coverUrl={r.artwork_url}
+                        size="thumb"
+                      />
+                    </span>
+                    <span className="min-w-0">
+                      <span className="block truncate text-[16px] font-semibold tracking-[-0.01em]">
+                        {getReleaseDisplayTitle(r) || "Без названия"}
+                      </span>
+                      <span className="mt-0.5 block truncate text-[13px] text-omf-graphite">
+                        {waiting
+                          ? "На проверке — ссылка после приёма"
+                          : `На площадках — ссылка через ${DSP_REVIEW_DAYS_TEXT}`}
+                      </span>
+                    </span>
+                  </Link>
+                </li>
+              );
+            })}
+          </ul>
+        </section>
+      ) : null}
 
       {!showSkeleton && isValidating ? (
         <p className="mt-6 text-center text-[13px] text-omf-faint">Обновляем…</p>
