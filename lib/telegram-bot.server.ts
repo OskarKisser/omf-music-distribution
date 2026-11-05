@@ -33,7 +33,11 @@ export type SendTelegramBotMessageResult =
 const BOT_API_TIMEOUT_MS = 8000;
 
 /** POST в Bot API. Requires TELEGRAM_BOT_TOKEN on the server. Ошибки возвращаются, не бросаются. */
-async function callBotApi(method: string, payload: Record<string, unknown>): Promise<SendTelegramBotMessageResult> {
+async function callBotApi(
+  method: string,
+  payload: Record<string, unknown>,
+  timeoutMs = BOT_API_TIMEOUT_MS
+): Promise<SendTelegramBotMessageResult> {
   const token = process.env.TELEGRAM_BOT_TOKEN;
   if (!token) {
     return { ok: false, error: "TELEGRAM_BOT_TOKEN is not set" };
@@ -47,7 +51,7 @@ async function callBotApi(method: string, payload: Record<string, unknown>): Pro
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(payload),
       // Медленный Telegram не должен подвешивать отправку релиза и ответы API.
-      signal: AbortSignal.timeout(BOT_API_TIMEOUT_MS)
+      signal: AbortSignal.timeout(timeoutMs)
     });
 
     const data = (await res.json()) as { ok?: boolean; description?: string };
@@ -107,4 +111,24 @@ export async function answerTelegramCallbackQuery(
     callback_query_id: callbackQueryId,
     ...(text ? { text } : {})
   });
+}
+
+/**
+ * sendDocument по ссылке: Telegram сам скачивает файл (до 20 МБ) и присылает его без сжатия.
+ * Даём больше времени — Telegram отвечает только после загрузки файла.
+ */
+export async function sendTelegramBotDocumentByUrl(options: {
+  chatId: number | string;
+  documentUrl: string;
+  caption?: string;
+}): Promise<SendTelegramBotMessageResult> {
+  return callBotApi(
+    "sendDocument",
+    {
+      chat_id: options.chatId,
+      document: options.documentUrl,
+      ...(options.caption ? { caption: options.caption, parse_mode: "HTML" } : {})
+    },
+    30_000
+  );
 }

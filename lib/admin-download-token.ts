@@ -26,8 +26,15 @@ function canonical(pathname: string, search: URLSearchParams): string {
   return qs ? `${pathname}?${qs}` : pathname;
 }
 
+/** Ссылка на архив в рабочем чате коллег: им нужно успеть скачать, не открывая админку. */
+export const COLLEAGUES_DOWNLOAD_TTL_SECONDS = 7 * 24 * 60 * 60;
+
 /** Выдаёт путь с токеном или null, если путь не разрешён или нет секрета. */
-export function createAdminDownloadPath(pathWithQuery: string, now = Date.now()): string | null {
+export function createAdminDownloadPath(
+  pathWithQuery: string,
+  now = Date.now(),
+  ttlSeconds = ADMIN_DOWNLOAD_TTL_SECONDS
+): string | null {
   const key = secret();
   if (!key) return null;
   let url: URL;
@@ -37,7 +44,7 @@ export function createAdminDownloadPath(pathWithQuery: string, now = Date.now())
     return null;
   }
   if (!ALLOWED_PATH.test(url.pathname)) return null;
-  const expiresAt = Math.floor(now / 1000) + ADMIN_DOWNLOAD_TTL_SECONDS;
+  const expiresAt = Math.floor(now / 1000) + ttlSeconds;
   const base = canonical(url.pathname, url.searchParams);
   const token = `${expiresAt}.${sign(expiresAt, base, key)}`;
   const sep = base.includes("?") ? "&" : "?";

@@ -1,4 +1,4 @@
-# Architecture Manifest — tg-mini-app
+# Architecture Manifest — omf-music-distribution (Telegram-бот и мини-апп для дистрибуции музыки)
 
 Документ описывает текущее состояние репозитория: стек, организацию кода, UX/performance-паттерны, бизнес-потоки, безопасность, схему данных Supabase и направления развития. Язык интерфейса приложения — русский (`lang="ru"` в [`app/layout.tsx`](../app/layout.tsx)).
 

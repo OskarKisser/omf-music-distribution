@@ -311,3 +311,41 @@ export async function setReleaseReferralPayout(releaseId: string, paid: boolean)
   }
   return json.referral ?? null;
 }
+
+async function postAdmin(path: string, fallbackError: string): Promise<Record<string, unknown>> {
+  await assertAdminAsync();
+  const authHeaders = await getAdminApiAuthHeaders();
+  const res = await fetch(path, {
+    method: "POST",
+    credentials: "same-origin",
+    headers: { Accept: "application/json", ...authHeaders },
+    cache: "no-store"
+  });
+  let json: { ok?: boolean; error?: string } & Record<string, unknown> = {};
+  try {
+    json = (await res.json()) as typeof json;
+  } catch {
+    json = {};
+  }
+  if (!res.ok || json.ok !== true) {
+    throw new Error(json.error || fallbackError);
+  }
+  return json;
+}
+
+/** Релиз снят у дистрибьютора: статус «Удалён», артисту сообщение в бот. */
+export async function confirmReleaseTakedown(releaseId: string): Promise<void> {
+  await postAdmin(
+    `/api/admin/releases/${encodeURIComponent(releaseId)}/takedown`,
+    "Не удалось отметить релиз удалённым."
+  );
+}
+
+/** Отправить форму релиза, обложку и архив файлов в рабочий чат коллег. */
+export async function sendReleaseToColleagues(releaseId: string): Promise<{ sentAt: string }> {
+  const json = await postAdmin(
+    `/api/admin/releases/${encodeURIComponent(releaseId)}/send-colleagues`,
+    "Не удалось отправить в чат коллег."
+  );
+  return { sentAt: typeof json.sentAt === "string" ? json.sentAt : new Date().toISOString() };
+}

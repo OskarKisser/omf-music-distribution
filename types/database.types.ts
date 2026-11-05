@@ -172,6 +172,11 @@ export type Database = {
           smart_link: string | null
           telegram_id: string | null
           telegram_pending_ack_sent_at: string | null
+          takedown_requested_at: string | null
+          takedown_reason: string | null
+          draft_reminded_at: string | null
+          release_day_notified_at: string | null
+          colleagues_sent_at: string | null
           telegram_username: string | null
           terms_accepted_at: string | null
           title: string | null
@@ -217,6 +222,11 @@ export type Database = {
           smart_link?: string | null
           telegram_id?: string | null
           telegram_pending_ack_sent_at?: string | null
+          takedown_requested_at?: string | null
+          takedown_reason?: string | null
+          draft_reminded_at?: string | null
+          release_day_notified_at?: string | null
+          colleagues_sent_at?: string | null
           telegram_username?: string | null
           terms_accepted_at?: string | null
           title?: string | null
@@ -262,6 +272,11 @@ export type Database = {
           smart_link?: string | null
           telegram_id?: string | null
           telegram_pending_ack_sent_at?: string | null
+          takedown_requested_at?: string | null
+          takedown_reason?: string | null
+          draft_reminded_at?: string | null
+          release_day_notified_at?: string | null
+          colleagues_sent_at?: string | null
           telegram_username?: string | null
           terms_accepted_at?: string | null
           title?: string | null
@@ -479,6 +494,7 @@ export type Database = {
         | "failed"
         | "review"
         | "pending"
+        | "removed"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -616,6 +632,7 @@ export const Constants = {
         "failed",
         "review",
         "pending",
+        "removed",
       ],
     },
   },

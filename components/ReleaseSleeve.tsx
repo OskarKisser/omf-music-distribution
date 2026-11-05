@@ -28,6 +28,12 @@ const STICKERS: Record<CanonicalReleaseStatus, StickerStyle | null> = {
   },
   ready: { label: "принят", color: "#fff", className: "omf-sticker--holo" },
   failed: { label: "отклонён", background: "var(--omf-red)", color: "#fff" },
+  removed: {
+    label: "удалён",
+    background: "var(--omf-surface-2)",
+    color: "var(--omf-graphite)",
+    border: "1.5px solid var(--omf-line)"
+  },
   unknown: null
 };
 

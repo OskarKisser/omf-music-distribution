@@ -4,6 +4,7 @@ export type CanonicalReleaseStatus =
   | "processing"
   | "ready"
   | "failed"
+  | "removed"
   | "unknown";
 
 export type ReleaseStatusMeta = {
@@ -44,6 +45,10 @@ const STATUS_META: Record<CanonicalReleaseStatus, Omit<ReleaseStatusMeta, "canon
     label: "Отклонено",
     badgeClassName: "border-rose-500/40 bg-rose-500/15 text-rose-300"
   },
+  removed: {
+    label: "Удалён",
+    badgeClassName: "border-zinc-500/30 bg-zinc-500/10 text-zinc-400"
+  },
   unknown: {
     label: "Неизвестно",
     badgeClassName: "border-sky-500/35 bg-sky-500/10 text-sky-300"
@@ -63,6 +68,8 @@ export function normalizeReleaseStatus(status: string | null | undefined): Canon
     return "ready";
   }
   if (value === "failed" || value === "rejected" || value === "error") return "failed";
+  /** Снят с площадок по просьбе артиста (или модератором). */
+  if (value === "removed" || value === "taken_down") return "removed";
   if (!value) return "unknown";
   return "unknown";
 }

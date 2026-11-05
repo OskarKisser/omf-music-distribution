@@ -26,6 +26,7 @@ const STATUS_LABEL: Record<CanonicalReleaseStatus, string> = {
   processing: "на проверке",
   ready: "принят",
   failed: "отклонён",
+  removed: "удалён с площадок",
   unknown: "статус не определён"
 };
 

@@ -31,6 +31,7 @@ import {
   type ReleaseNextStep
 } from "@/lib/release-next-step";
 import { StatusRing } from "@/components/library/StatusRing";
+import { ReleaseTakedownRequest } from "@/components/ReleaseTakedownRequest";
 import { useCreateReleaseDraftStore } from "@/features/release/createRelease/store";
 import { hapticMap } from "@/lib/haptic-map";
 import { toast } from "sonner";
@@ -68,6 +69,7 @@ type ReleaseDetailsRow = {
   upc?: string | null;
   collaborators?: unknown;
   music_author?: string | null;
+  takedown_requested_at?: string | null;
   tracks: ReleaseDetailsTrackRow[];
 };
 
@@ -562,6 +564,13 @@ export default function ReleaseDetailsClient() {
           </div>
         ) : null}
       </div>
+
+      <ReleaseTakedownRequest
+        releaseId={release.id}
+        status={release.status}
+        takedownRequestedAt={release.takedown_requested_at}
+        onRequested={(at) => setRelease((r) => (r ? { ...r, takedown_requested_at: at } : r))}
+      />
     </>
   );
 }
