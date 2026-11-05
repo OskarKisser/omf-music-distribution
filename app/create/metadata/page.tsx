@@ -236,6 +236,25 @@ function CreateMetadataPageInner() {
     lastSyncedValuesRef.current = JSON.stringify(hydrated);
   }, [reset, releaseIdParam, hasHydrated, storeMetadata]);
 
+  // Формат выбран на первом экране (?format=single|multi|ep|album). Применяем после сверки
+  // пользователя и синхронизации с черновиком, чтобы их сброс не затёр выбор. Мультисингл — EP из двух треков.
+  const formatParam = searchParams.get("format");
+  const didApplyFormatRef = useRef(false);
+  useEffect(() => {
+    if (releaseIdParam || !hasHydrated || didApplyFormatRef.current) return;
+    if (formatParam !== "single" && formatParam !== "multi" && formatParam !== "ep" && formatParam !== "album") return;
+    didApplyFormatRef.current = true;
+    const releaseType = formatParam === "multi" ? "ep" : formatParam;
+    setValue("releaseType", releaseType, { shouldDirty: true, shouldValidate: true });
+    setMetadata({ releaseType });
+    const current = useCreateReleaseDraftStore.getState().tracks;
+    if (releaseType !== "single" && current.length < 2) {
+      const empty = { title: "", explicit: false, lyrics: "", featuringArtistNames: [] as string[] };
+      setTracks([...current, empty, empty].slice(0, 2).map((t) => ({ ...empty, ...t })));
+    }
+    router.replace("/create/metadata");
+  }, [formatParam, releaseIdParam, hasHydrated, setValue, setMetadata, setTracks, router]);
+
   // Single: keep store track list aligned with one WAV slot (avoid orphan trackFiles after EP → Single).
   useEffect(() => {
     if (values.releaseType !== "single") return;
@@ -568,6 +587,9 @@ function CreateMetadataPageInner() {
                     );
                   })}
                 </div>
+                {values.releaseType === "ep" ? (
+                  <p className="mt-2 text-[13px] text-omf-graphite">Мультисингл из двух треков тоже выпускаем как EP.</p>
+                ) : null}
                 <FormFieldError message={errors.releaseType?.message} />
               </div>
 
