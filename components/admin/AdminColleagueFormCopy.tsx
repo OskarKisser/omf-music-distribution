@@ -44,7 +44,7 @@ export function AdminColleagueFormCopy({
       const res = await sendReleaseToColleagues(release.id);
       setSentAt(res.sentAt);
       triggerHaptic("success");
-      toast.success("Отправлено в чат коллег");
+      toast.success("Отправлено — перешли коллегам из чата с ботом");
     } catch (e) {
       triggerHaptic("error");
       toast.error(e instanceof Error ? e.message : "Не удалось отправить");
@@ -75,7 +75,7 @@ export function AdminColleagueFormCopy({
         className="omf-btn-ink w-full justify-start gap-3 px-4 text-[14px] disabled:opacity-50"
       >
         {sending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
-        {sending ? "Отправляем…" : "Отправить коллегам в чат"}
+        {sending ? "Отправляем…" : "Прислать форму в Telegram"}
       </button>
       {sentAt ? (
         <p className="text-[13px] text-omf-green">Отправлено {formatSentAt(sentAt)}</p>
@@ -92,7 +92,7 @@ export function AdminColleagueFormCopy({
         {missing > 0
           ? `Не заполнено полей: ${missing} — в тексте стоит «—». `
           : ""}
-        В чат уходят форма, обложка и тексты файлами и ссылка на архив со всеми WAV.
+        Бот пришлёт обложку и тексты файлами, форму и ссылку на архив со всеми WAV — перешли это коллегам.
       </p>
     </div>
   );

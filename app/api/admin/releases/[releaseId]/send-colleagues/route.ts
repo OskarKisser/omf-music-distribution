@@ -34,7 +34,7 @@ export async function POST(
   const chatId = colleaguesChatId();
   if (!chatId) {
     return NextResponse.json(
-      { ok: false, error: "Не настроен чат коллег (TELEGRAM_COLLEAGUES_CHAT_ID)." },
+      { ok: false, error: "Не настроен чат: задайте TELEGRAM_COLLEAGUES_CHAT_ID или ADMIN_TELEGRAM_ID." },
       { status: 503 }
     );
   }

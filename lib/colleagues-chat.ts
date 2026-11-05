@@ -1,9 +1,18 @@
 import { escapeHtml } from "@/lib/telegram-bot.server";
+import { getExpectedAdminTelegramId } from "@/lib/admin";
 
-/** Чат коллег, куда уходит форма релиза (бот должен быть добавлен в группу). */
+/**
+ * Куда уходит форма релиза: группа коллег (TELEGRAM_COLLEAGUES_CHAT_ID, бот должен быть в ней),
+ * а если она не задана — личный чат админа с ботом, откуда форму пересылают дальше.
+ */
 export function colleaguesChatId(): string | null {
   const raw = process.env.TELEGRAM_COLLEAGUES_CHAT_ID?.trim() ?? "";
-  return /^-?\d+$/.test(raw) ? raw : null;
+  if (/^-?\d+$/.test(raw)) return raw;
+  try {
+    return String(getExpectedAdminTelegramId());
+  } catch {
+    return null;
+  }
 }
 
 /**
