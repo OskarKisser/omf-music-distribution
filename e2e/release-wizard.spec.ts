@@ -217,8 +217,8 @@ test.describe("@smoke @regression Library page", () => {
       await expect(page.getByRole("button", { name: /войти/i })).toBeVisible({ timeout: 10_000 });
       return;
     }
-    // Пустая библиотека — «Создать релиз», с релизами — плитка «Новый релиз».
-    const primaryCreateCta = page.getByRole("button", { name: /создать релиз|новый релиз/i }).first();
+    // Пустая библиотека — карточка «Сингл», с релизами — кнопка «Новый релиз».
+    const primaryCreateCta = page.getByRole("button", { name: /новый релиз|^сингл/i }).first();
     await expect(primaryCreateCta).toBeVisible({ timeout: 10_000 });
   });
 
@@ -230,7 +230,7 @@ test.describe("@smoke @regression Library page", () => {
       await page.waitForURL(/\/create\/metadata/, { timeout: 10_000 });
       return;
     }
-    await page.getByRole("button", { name: /создать релиз|новый релиз/i }).first().click();
+    await page.getByRole("button", { name: /новый релиз|^сингл/i }).first().click();
     await page.waitForURL(/\/create\/metadata/, { timeout: 10_000 });
   });
 
