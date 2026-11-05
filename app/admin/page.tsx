@@ -9,7 +9,6 @@ import { toast } from "sonner";
 import { AdminApproveSmartLinkModal, type ApproveModalMode } from "@/components/AdminApproveSmartLinkModal";
 import { AdminAwaitingLinkList } from "@/components/admin/AdminAwaitingLinkList";
 import { AdminTabs, type AdminTab } from "@/components/admin/AdminTabs";
-import { ScreenHeader } from "@/components/ScreenHeader";
 import { fetchAdminAwaitingLink } from "@/features/admin/awaiting-link";
 import { AdminRejectModal } from "@/components/AdminRejectModal";
 import { AdminReleaseCard } from "@/components/AdminReleaseCard";
@@ -31,6 +30,7 @@ import { SWR_LIST_OPTIONS } from "@/lib/swr-config";
 import { withRequestTimeout } from "@/lib/withRequestTimeout";
 import { useIsTelegramMiniApp } from "@/lib/hooks/useIsTelegramMiniApp";
 import { cn } from "@/lib/utils";
+import { pluralRu } from "@/lib/release-next-step";
 
 type ModerationQueueRow = {
   release: ReleaseRecord;
@@ -345,24 +345,44 @@ function AdminPageInner() {
   }
 
   const showQueueSkeleton = isLoading && data === undefined;
+  const errorsChip = (extra: string) => (
+    <button
+      type="button"
+      aria-pressed={activeFilter === "with_errors"}
+      onClick={() => setActiveFilter(activeFilter === "with_errors" ? "all" : "with_errors")}
+      className={cn(
+        "omf-focus h-8 shrink-0 rounded-full px-3 text-[13px] transition-colors",
+        activeFilter === "with_errors" ? "bg-[rgba(229,72,77,0.16)] text-[#ff9a9d]" : "bg-omf-surface-2 text-omf-graphite",
+        extra
+      )}
+    >
+      С ошибками <span className="tabular-nums">{filterCounts.with_errors}</span>
+    </button>
+  );
   return (
     <div className="mx-auto min-h-app max-w-lg px-1 pb-40 pt-6 text-omf-ink lg:max-w-3xl">
       <PullRefreshBrand onRefresh={() => void refreshAll()} />
 
-      <ScreenHeader
-        className="mb-4"
-        label={
-          <>
-            Ждут решения: {moderationQueue.length}
-            {stats?.oldest_wait_hours != null && moderationQueue.length > 0 ? (
-              <span className={stats.oldest_wait_hours >= 24 ? "text-omf-red" : undefined}>
-                , самый долгий {stats.oldest_wait_hours} ч
-              </span>
-            ) : null}
-          </>
-        }
-        title="Модерация"
-      />
+      <header className="mb-5">
+        <h1 className="text-[32px] font-bold leading-none tracking-[-0.045em]">Модерация</h1>
+        <p className="mt-2 text-[14px] text-omf-graphite">
+          {moderationQueue.length > 0 ? (
+            <>
+              {moderationQueue.length} {pluralRu(moderationQueue.length, ["ждёт", "ждут", "ждут"])} решения
+              {stats?.oldest_wait_hours != null ? (
+                <>
+                  {" · самый долгий "}
+                  <span className={stats.oldest_wait_hours >= 24 ? "text-omf-red" : "text-omf-ink"}>
+                    {stats.oldest_wait_hours} ч
+                  </span>
+                </>
+              ) : null}
+            </>
+          ) : (
+            "Очередь пуста"
+          )}
+        </p>
+      </header>
       <AdminTabs active={view} counts={{ queue: moderationQueue.length, links: awaitingLink?.length }} />
 
       <AdminApproveSmartLinkModal
@@ -399,71 +419,48 @@ function AdminPageInner() {
 
       {view === "queue" ? (
         <>
-      <div className="mb-4 flex items-center gap-2">
-        {/* Фильтр «С ошибками» нужен, только когда такие релизы есть; иначе это второй ряд пилюль без пользы. */}
-        {filterCounts.with_errors > 0 ? (
-        <div
-          className="flex min-w-0 flex-1 gap-1 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
-          role="tablist"
-          aria-label="Фильтр очереди"
-        >
-          {([
-            { key: "all", label: "Все" },
-            { key: "with_errors", label: "С ошибками" }
-          ] as const).map((filter) => {
-            const isActive = activeFilter === filter.key;
-            return (
-              <button
-                key={filter.key}
-                type="button"
-                role="tab"
-                aria-selected={isActive}
-                onClick={() => setActiveFilter(filter.key)}
-                className={`omf-focus shrink-0 rounded-full px-3.5 py-1.5 text-[13px] transition-colors ${
-                  isActive ? "bg-omf-ink font-medium text-omf-bg" : "text-omf-graphite hover:text-omf-ink"
-                }`}
-              >
-                {filter.label}
-                <span className={`ml-1.5 tabular-nums ${isActive ? "text-omf-bg/70" : "text-omf-faint"}`}>
-                  {filterCounts[filter.key]}
-                </span>
-              </button>
-            );
-          })}
+      {/* Поиск, фильтр «С ошибками» и выбор нескольких — одной строкой. Поиск нужен от 4 релизов. */}
+      {moderationQueue.length >= 4 || filterCounts.with_errors > 0 || selectMode || moderationQueueFiltered.length > 1 ? (
+        <div className="mb-2 flex items-center gap-2">
+          {moderationQueue.length >= 4 ? (
+            <div className="relative min-w-0 flex-1">
+              <input
+                type="search"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="Поиск"
+                aria-label="Поиск по очереди"
+                className={cn(
+                  "omf-focus h-11 w-full rounded-[12px] bg-omf-surface pl-3.5 text-[16px] text-omf-ink placeholder:text-omf-faint focus:outline-none focus:ring-1 focus:ring-omf-ultra",
+                  filterCounts.with_errors > 0 ? "pr-[124px]" : "pr-3.5"
+                )}
+              />
+              {filterCounts.with_errors > 0 ? errorsChip("absolute right-1.5 top-1/2 -translate-y-1/2") : null}
+            </div>
+          ) : (
+            <>
+              <div className="flex-1" />
+              {filterCounts.with_errors > 0 ? errorsChip("") : null}
+            </>
+          )}
+          {selectMode || moderationQueueFiltered.length > 1 ? (
+            <button
+              type="button"
+              onClick={() => {
+                triggerHaptic("light");
+                if (selectMode) exitSelectMode();
+                else setSelectMode(true);
+              }}
+              aria-pressed={selectMode}
+              className={cn(
+                "omf-focus h-9 shrink-0 rounded-full px-2 text-[13px] transition-colors hover:text-omf-ink",
+                selectMode ? "font-medium text-omf-ink" : "text-omf-ultra-text"
+              )}
+            >
+              {selectMode ? "Готово" : "Выбрать"}
+            </button>
+          ) : null}
         </div>
-        ) : (
-          <div className="flex-1" />
-        )}
-        {selectMode || moderationQueueFiltered.length > 1 ? (
-          <button
-            type="button"
-            onClick={() => {
-              triggerHaptic("light");
-              if (selectMode) exitSelectMode();
-              else setSelectMode(true);
-            }}
-            aria-pressed={selectMode}
-            className={cn(
-              "omf-focus shrink-0 rounded-full px-3 py-1.5 text-[13px] transition-colors hover:text-omf-ink",
-              selectMode ? "font-medium text-omf-ink" : "text-omf-ultra-text"
-            )}
-          >
-            {selectMode ? "Готово" : "Выбрать"}
-          </button>
-        ) : null}
-      </div>
-
-      {moderationQueue.length >= 4 ? (
-      <div className="mb-4">
-        <input
-          type="search"
-          value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
-          placeholder="Артист, название или ID"
-          aria-label="Поиск по очереди"
-          className="omf-focus min-h-[48px] w-full rounded-control border border-omf-line bg-omf-surface px-4 py-3 text-[16px] text-omf-ink placeholder:text-omf-faint focus:border-omf-ultra focus:outline-none"
-        />
-      </div>
       ) : null}
 
       {selectMode && moderationQueueFiltered.length > 0 ? (
@@ -505,7 +502,7 @@ function AdminPageInner() {
       )}
 
       {moderationQueueFiltered.length > 0 && (
-        <div className="flex flex-col gap-2">
+        <div className="flex flex-col">
           {moderationQueueFiltered.map((row, index) => (
             <AdminReleaseCard
               key={row.release.id}

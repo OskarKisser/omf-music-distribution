@@ -5,7 +5,6 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import useSWR from "swr";
 import { PullRefreshBrand } from "@/components/PullRefreshBrand";
-import { ScreenHeader } from "@/components/ScreenHeader";
 import { AdminTabs } from "@/components/admin/AdminTabs";
 import { ReleaseSleeve } from "@/components/ReleaseSleeve";
 import { AdminModerationQueueSkeleton } from "@/components/ui/LibrarySkeleton";
@@ -102,7 +101,10 @@ export default function AdminCatalogPage() {
     <div className="mx-auto min-h-app max-w-lg px-1 pb-40 pt-6 text-omf-ink lg:max-w-3xl">
       <PullRefreshBrand onRefresh={() => void mutate(undefined, { revalidate: true })} />
 
-      <ScreenHeader className="mb-4" label="Всё, что отгрузили на площадки" title="Модерация" />
+      <header className="mb-5">
+        <h1 className="text-[32px] font-bold leading-none tracking-[-0.045em]">Модерация</h1>
+        <p className="mt-2 text-[14px] text-omf-graphite">Всё, что отгрузили на площадки</p>
+      </header>
       <AdminTabs active="catalog" />
 
       {errorMessage && <p className="mb-4 text-[14px] text-omf-red">{errorMessage}</p>}
@@ -152,11 +154,11 @@ export default function AdminCatalogPage() {
                   }}
                   className={cn(
                     "omf-focus shrink-0 rounded-full px-3.5 py-1.5 text-[13px] transition-colors",
-                    active ? "bg-omf-ink font-medium text-omf-bg" : "text-omf-graphite hover:text-omf-ink"
+                    active ? "bg-omf-surface-2 font-medium text-omf-ink" : "text-omf-graphite hover:text-omf-ink"
                   )}
                 >
                   {t.label}
-                  <span className={cn("ml-1.5 tabular-nums", active ? "text-omf-bg/70" : "text-omf-faint")}>
+                  <span className={"ml-1.5 tabular-nums text-omf-faint"}>
                     {t.count}
                   </span>
                 </button>
@@ -169,7 +171,7 @@ export default function AdminCatalogPage() {
             onChange={(e) => setQuery(e.target.value)}
             placeholder={tab === "tracks" ? "Трек, релиз или артист" : "Артист"}
             aria-label="Поиск по каталогу"
-            className="omf-focus mb-2 min-h-[48px] w-full rounded-control border border-omf-line bg-omf-surface px-4 py-3 text-[16px] text-omf-ink placeholder:text-omf-faint focus:border-omf-ultra focus:outline-none"
+            className="omf-focus mb-2 h-11 w-full rounded-[12px] bg-omf-surface px-3.5 text-[16px] text-omf-ink placeholder:text-omf-faint focus:outline-none focus:ring-1 focus:ring-omf-ultra"
           />
         </>
       ) : null}
@@ -186,12 +188,12 @@ export default function AdminCatalogPage() {
       )}
 
       {tab === "tracks" && tracks.length > 0 ? (
-        <ul className="flex flex-col gap-2">
+        <ul className="flex flex-col">
           {tracks.slice(0, visibleCount).map((t) => (
             <li key={t.key}>
               <Link
                 href={`/admin/release/${t.releaseId}`}
-                className="omf-focus flex items-center gap-3 rounded-[18px] bg-omf-surface p-2.5 transition-transform active:scale-[0.99]"
+                className="omf-focus -mx-2 flex items-center gap-3 rounded-[14px] px-2 py-2.5 transition-colors hover:bg-omf-surface active:bg-omf-surface"
               >
                 <div className="w-14 shrink-0">
                   <ReleaseSleeve
@@ -230,7 +232,7 @@ export default function AdminCatalogPage() {
       ) : null}
 
       {tab === "artists" && artists.length > 0 ? (
-        <ul className="flex flex-col gap-2">
+        <ul className="flex flex-col">
           {artists.slice(0, visibleCount).map((a) => (
             <li key={artistKey(a.name)}>
               <button
@@ -241,7 +243,7 @@ export default function AdminCatalogPage() {
                   setTab("tracks");
                   window.scrollTo({ top: 0 });
                 }}
-                className="omf-focus flex w-full items-center gap-3 rounded-[18px] bg-omf-surface p-3.5 text-left transition-transform active:scale-[0.99]"
+                className="omf-focus flex w-full items-center gap-3 border-b border-omf-line py-3.5 text-left"
               >
                 <div className="min-w-0 flex-1">
                   <p className="truncate text-[16px] font-semibold leading-tight tracking-[-0.01em]">{a.name}</p>

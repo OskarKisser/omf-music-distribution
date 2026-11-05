@@ -59,6 +59,8 @@ export function AdminPaymentPanel({
   const { label, tone } = describePayment(release.payment_status);
   const updated = describePaymentUpdate(release.payment_updated_by, release.payment_updated_at);
   const hint = hintFor(release);
+  // «Оплачено» — обычное состояние: кнопки смены прячем за «Изменить».
+  const [actionsOpen, setActionsOpen] = useState(false);
 
   const run = async (action: "paid" | "unpaid" | "ask_bot") => {
     setBusy(true);
@@ -108,14 +110,26 @@ export function AdminPaymentPanel({
   };
 
   return (
-    <section className="mt-6 rounded-control border border-omf-line p-4" aria-labelledby="admin-payment">
-      <div className="flex items-baseline justify-between gap-3">
-        <h2 id="admin-payment" className="text-[13px] text-omf-graphite">
+    <section className="border-b border-omf-line py-3" aria-labelledby="admin-payment">
+      <div className="flex items-center gap-3">
+        <h2 id="admin-payment" className="w-[72px] shrink-0 text-[14px] text-omf-graphite">
           Оплата
         </h2>
-        {updated ? <p className="text-[12px] text-omf-faint">{updated}</p> : null}
+        <p className={`min-w-0 flex-1 text-right text-[15px] font-medium first-letter:uppercase ${TONE_CLASS[tone]}`}>
+          {label}
+        </p>
+        {status === "paid" ? (
+          <button
+            type="button"
+            aria-expanded={actionsOpen}
+            onClick={() => setActionsOpen((v) => !v)}
+            className="omf-focus shrink-0 py-1 text-[14px] text-omf-ultra-text hover:text-omf-ink"
+          >
+            {actionsOpen ? "Скрыть" : "Изменить"}
+          </button>
+        ) : null}
       </div>
-      <p className={`mt-1 text-[16px] font-bold first-letter:uppercase ${TONE_CLASS[tone]}`}>{label}</p>
+      {updated && (actionsOpen || status !== "paid") ? <p className="mt-1 text-right text-[12px] text-omf-faint">{updated}</p> : null}
       {hint ? <p className="mt-1 text-[13px] leading-snug text-omf-graphite">{hint}</p> : null}
       {referral?.discountRub != null ? (
         <p className="mt-3 rounded-control bg-omf-yellow px-3 py-2 text-[14px] font-bold text-omf-yellow-ink">
@@ -139,6 +153,7 @@ export function AdminPaymentPanel({
           </button>
         </div>
       ) : null}
+      {status !== "paid" || actionsOpen ? (
       <div className="mt-3 flex flex-wrap gap-2">
         {status !== "paid" ? (
           <button type="button" disabled={busy} onClick={() => void run("paid")} className={pillClass}>
@@ -161,6 +176,7 @@ export function AdminPaymentPanel({
           </button>
         ) : null}
       </div>
+      ) : null}
     </section>
   );
 }

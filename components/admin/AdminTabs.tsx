@@ -24,7 +24,7 @@ export function AdminTabs({
   return (
     <nav
       aria-label="Разделы модерации"
-      className="mb-4 flex gap-1 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+      className="-mx-1 mb-4 flex gap-0.5 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
     >
       {TABS.map((tab) => {
         const isActive = tab.key === active;
@@ -37,15 +37,13 @@ export function AdminTabs({
             aria-current={isActive ? "page" : undefined}
             onClick={() => hapticMap.impactLight()}
             className={cn(
-              "omf-focus flex h-8 shrink-0 items-center gap-1 rounded-full border px-2.5 text-[12.5px] transition-colors",
-              isActive
-                ? "border-omf-ink bg-omf-ink font-semibold text-omf-bg"
-                : "border-omf-line text-omf-graphite hover:text-omf-ink"
+              "omf-focus flex h-9 shrink-0 items-center gap-1 rounded-full px-3 text-[14px] transition-colors",
+              isActive ? "bg-omf-surface-2 font-medium text-omf-ink" : "text-omf-graphite hover:text-omf-ink"
             )}
           >
             {tab.label}
             {count != null ? (
-              <span className={cn("tabular-nums text-[11.5px]", isActive ? "text-omf-bg/70" : "text-omf-faint")}>
+              <span className="tabular-nums text-omf-faint">
                 {count}
               </span>
             ) : null}

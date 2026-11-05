@@ -5,7 +5,6 @@ import { useRouter } from "next/navigation";
 import useSWR from "swr";
 import { AdminReleaseCard } from "@/components/AdminReleaseCard";
 import { PullRefreshBrand } from "@/components/PullRefreshBrand";
-import { ScreenHeader } from "@/components/ScreenHeader";
 import { AdminTabs } from "@/components/admin/AdminTabs";
 import { AdminModerationQueueSkeleton } from "@/components/ui/LibrarySkeleton";
 import { fetchAdminModerationHistory } from "@/features/admin/moderation-history";
@@ -134,7 +133,10 @@ export default function AdminModerationHistoryPage() {
     <div className="mx-auto min-h-app max-w-lg px-1 pb-40 pt-6 text-omf-ink lg:max-w-3xl">
       <PullRefreshBrand onRefresh={() => void mutate(undefined, { revalidate: true })} />
 
-      <ScreenHeader className="mb-4" label="Принятые и возвращённые" title="Модерация" />
+      <header className="mb-5">
+        <h1 className="text-[32px] font-bold leading-none tracking-[-0.045em]">Модерация</h1>
+        <p className="mt-2 text-[14px] text-omf-graphite">Принятые и возвращённые</p>
+      </header>
       <AdminTabs active="history" />
 
       {listTruncated && allRows.length > 0 && (
@@ -168,11 +170,11 @@ export default function AdminModerationHistoryPage() {
                   }}
                   className={cn(
                     "omf-focus shrink-0 rounded-full px-3.5 py-1.5 text-[13px] transition-colors",
-                    active ? "bg-omf-ink font-medium text-omf-bg" : "text-omf-graphite hover:text-omf-ink"
+                    active ? "bg-omf-surface-2 font-medium text-omf-ink" : "text-omf-graphite hover:text-omf-ink"
                   )}
                 >
                   {tab.label}
-                  <span className={cn("ml-1.5 tabular-nums", active ? "text-omf-bg/70" : "text-omf-faint")}>
+                  <span className={"ml-1.5 tabular-nums text-omf-faint"}>
                     {counts[tab.key]}
                   </span>
                 </button>
@@ -185,7 +187,7 @@ export default function AdminModerationHistoryPage() {
             onChange={(e) => setQuery(e.target.value)}
             placeholder="Артист, название, ID или ссылка"
             aria-label="Поиск по истории"
-            className="omf-focus mb-4 min-h-[48px] w-full rounded-control border border-omf-line bg-omf-surface px-4 py-3 text-[16px] text-omf-ink placeholder:text-omf-faint focus:border-omf-ultra focus:outline-none"
+            className="omf-focus mb-4 h-11 w-full rounded-[12px] bg-omf-surface px-3.5 text-[16px] text-omf-ink placeholder:text-omf-faint focus:outline-none focus:ring-1 focus:ring-omf-ultra"
           />
         </>
       ) : null}
@@ -206,7 +208,7 @@ export default function AdminModerationHistoryPage() {
       )}
 
       {rows.length > 0 && (
-        <div className="flex flex-col gap-2">
+        <div className="flex flex-col">
           {visibleRows.map((row, index) => (
             <AdminReleaseCard
               key={row.release.id}

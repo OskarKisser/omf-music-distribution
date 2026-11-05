@@ -72,7 +72,7 @@ export function AdminColleagueFormCopy({
         type="button"
         onClick={() => void onSend()}
         disabled={sending}
-        className="omf-btn-ink w-full justify-start gap-3 px-4 text-[14px] disabled:opacity-50"
+        className="omf-btn-ink w-full gap-2 text-[15px] disabled:opacity-50"
       >
         {sending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
         {sending ? "Отправляем…" : "Прислать форму в Telegram"}
@@ -83,10 +83,10 @@ export function AdminColleagueFormCopy({
       <button
         type="button"
         onClick={() => void onCopy()}
-        className="omf-btn-secondary w-full justify-start gap-3 px-4 text-[14px]"
+        className="omf-focus flex w-full items-center justify-center gap-1.5 py-1.5 text-[13px] text-omf-graphite hover:text-omf-ink"
       >
-        {done ? <Check className="h-4 w-4" /> : <ClipboardCopy className="h-4 w-4" />}
-        Скопировать форму для коллег
+        {done ? <Check className="h-3.5 w-3.5" /> : <ClipboardCopy className="h-3.5 w-3.5" />}
+        или скопировать текст формы
       </button>
       <p className="text-[13px] leading-relaxed text-omf-faint">
         {missing > 0

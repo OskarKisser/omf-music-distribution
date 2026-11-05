@@ -63,16 +63,14 @@ export function AdminReleaseDatePanel({
   };
 
   return (
-    <section className="mt-6 rounded-control border border-omf-line p-4" aria-labelledby="admin-release-date">
-      <div className="flex items-center justify-between gap-3">
-        <div className="min-w-0">
-          <h2 id="admin-release-date" className="text-[13px] text-omf-graphite">
-            Дата выхода
-          </h2>
-          <p className="mt-1 text-[16px] font-bold tabular-nums">
-            {label ? `${label} ${year}` : "Не указана"}
-          </p>
-        </div>
+    <section className="border-b border-omf-line py-3" aria-labelledby="admin-release-date">
+      <div className="flex items-center gap-3">
+        <h2 id="admin-release-date" className="w-[72px] shrink-0 text-[14px] text-omf-graphite">
+          Выход
+        </h2>
+        <p className="min-w-0 flex-1 text-right text-[15px] font-medium tabular-nums">
+          {label ? `${label} ${year}` : "Не указана"}
+        </p>
         {!editing ? (
           <button
             type="button"
@@ -81,7 +79,7 @@ export function AdminReleaseDatePanel({
               setNotify(true);
               setEditing(true);
             }}
-            className={pillClass + " shrink-0"}
+            className="omf-focus shrink-0 py-1 text-[14px] text-omf-ultra-text hover:text-omf-ink"
           >
             Перенести
           </button>
