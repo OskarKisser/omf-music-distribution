@@ -86,6 +86,8 @@ export default function CreateReviewPage() {
   const tracksUploadInProgress = useCreateReleaseDraftStore((s) => s.tracksUploadInProgress);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [termsAccepted, setTermsAccepted] = useState(false);
+  /** Артист подтвердил: в треках и текстах нет пропаганды наркотиков (или она запикана). */
+  const [contentAccepted, setContentAccepted] = useState(false);
   const { data: referral } = useReferral();
   /** Нажали «Отправить» без галочки — подсвечиваем её вместо неактивной кнопки. */
   const [termsHint, setTermsHint] = useState(false);
@@ -153,7 +155,7 @@ export default function CreateReviewPage() {
   }, [submitError]);
 
   const handleSubmit = useCallback(async () => {
-    if (!termsAccepted) {
+    if (!termsAccepted || !contentAccepted) {
       setTermsHint(true);
       hapticMap.notificationError();
       return;
@@ -239,7 +241,7 @@ export default function CreateReviewPage() {
       return;
     }
     router.replace("/create/success");
-  }, [missingFiles, setSubmitError, trackFiles, router, termsAccepted]);
+  }, [missingFiles, setSubmitError, trackFiles, router, termsAccepted, contentAccepted]);
 
   if (submitStatus === "success" && successSummary) {
     return (
@@ -391,6 +393,24 @@ export default function CreateReviewPage() {
 
         {!progressActive ? (
           <div>
+            <label className="mb-3.5 flex cursor-pointer items-start gap-3 text-[13px] leading-snug text-omf-graphite">
+              <input
+                type="checkbox"
+                checked={contentAccepted}
+                disabled={isSubmitting}
+                aria-invalid={termsHint && !contentAccepted}
+                onChange={(e) => {
+                  triggerHaptic("light");
+                  setContentAccepted(e.target.checked);
+                  if (e.target.checked && termsAccepted) setTermsHint(false);
+                }}
+                className="mt-0.5 h-5 w-5 shrink-0 rounded-[6px] accent-[var(--omf-ultra)]"
+              />
+              <span>
+                В треках и текстах нет пропаганды наркотиков, а если что-то такое было — я это запикал и убрал из
+                текста.
+              </span>
+            </label>
             <label className="flex cursor-pointer items-start gap-3 text-[13px] leading-snug text-omf-graphite">
               <input
                 type="checkbox"
@@ -400,7 +420,7 @@ export default function CreateReviewPage() {
                 onChange={(e) => {
                   triggerHaptic("light");
                   setTermsAccepted(e.target.checked);
-                  if (e.target.checked) setTermsHint(false);
+                  if (e.target.checked && contentAccepted) setTermsHint(false);
                 }}
                 className="mt-0.5 h-5 w-5 shrink-0 rounded-[6px] accent-[var(--omf-ultra)]"
               />
@@ -414,9 +434,9 @@ export default function CreateReviewPage() {
                 Скидка {formatRub(REFEREE_DISCOUNT_RUB)} по приглашению друга, студия учтёт её при оплате.
               </p>
             ) : null}
-            {termsHint && !termsAccepted ? (
+            {termsHint && (!termsAccepted || !contentAccepted) ? (
               <p role="alert" className="mt-2 pl-8 text-[13px] text-omf-red">
-                Отметь галочку, чтобы отправить релиз.
+                {!termsAccepted && !contentAccepted ? "Отметь обе галочки, чтобы отправить релиз." : "Отметь галочку, чтобы отправить релиз."}
               </p>
             ) : null}
           </div>
@@ -448,7 +468,7 @@ export default function CreateReviewPage() {
               onClick={() => void handleSubmit()}
               className={cn(
                 "create-flow-submit-target omf-btn-primary h-[52px] w-full text-[16px] font-medium",
-                termsAccepted && !submitBlocked && !tracksUploadInProgress && "omf-btn-shine"
+                termsAccepted && contentAccepted && !submitBlocked && !tracksUploadInProgress && "omf-btn-shine"
               )}
             >
               <BusyLabel busy={tracksUploadInProgress} busyText="Загружаем WAV…">
