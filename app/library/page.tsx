@@ -25,6 +25,7 @@ import { cn } from "@/lib/utils";
 import { pickHeroArtistName } from "@/lib/artist-name";
 import { RejectionNotice } from "@/components/RejectionNotice";
 import { getReleaseNextStep, NEXT_STEP_TONE_CLASS, pluralRu } from "@/lib/release-next-step";
+import { readPlatformIssue } from "@/lib/platform-issue";
 import { releaseTypeLabel } from "@/lib/release-type-label";
 import { ReleaseSleeve } from "@/components/ReleaseSleeve";
 import { describeRejection, type RejectionSummary } from "@/lib/rejection-reasons";
@@ -379,7 +380,8 @@ function LibraryPageInner() {
     const nextStep = getReleaseNextStep({
       status: release.status,
       smartLink: release.smart_link,
-      submittedAt: release.submitted_at
+      submittedAt: release.submitted_at,
+      platformIssue: readPlatformIssue(release)
     });
 
     return (

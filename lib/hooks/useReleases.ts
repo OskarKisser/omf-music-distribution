@@ -42,6 +42,8 @@ type ReleaseListBaseRow = Pick<
   | "smart_link"
   | "release_date"
   | "rejection_reasons"
+  | "platform_issue_platforms"
+  | "platform_issue_at"
 >;
 
 const RELEASES_LIST_TIMEOUT_MS = 15000;

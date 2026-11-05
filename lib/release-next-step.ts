@@ -1,4 +1,5 @@
 import { normalizeReleaseStatus } from "@/lib/release-status";
+import { platformIssueBody, platformIssueCardLine, type PlatformIssue } from "@/lib/platform-issue";
 
 /** Обещанный артисту срок проверки (тот же, что в тексте после отправки). */
 export const MODERATION_SLA_HOURS = 24;
@@ -14,6 +15,7 @@ export type NextStepKind =
   | "waiting_long"
   | "approved_link"
   | "approved_no_link"
+  | "updating"
   | "removed"
   | "unknown";
 
@@ -39,6 +41,8 @@ export type NextStepInput = {
   submittedAt?: string | null;
   /** Решение придёт сообщением в Telegram (у веб-аккаунтов без Telegram — нет). */
   notifiesInTelegram?: boolean;
+  /** Площадка сняла вышедший релиз — обновляем (см. lib/platform-issue.ts). */
+  platformIssue?: PlatformIssue | null;
 };
 
 /** «меньше часа», «3 ч», «2 дн». */
@@ -113,6 +117,16 @@ export function getReleaseNextStep(input: NextStepInput, now: Date = new Date())
       };
     }
     case "ready": {
+      if (input.platformIssue) {
+        return {
+          kind: "updating",
+          tone: "warn",
+          cardLine: platformIssueCardLine(input.platformIssue),
+          title: "Обновляем на площадках",
+          body: platformIssueBody(input.platformIssue, Boolean(input.notifiesInTelegram)),
+          needsAction: false
+        };
+      }
       const notify = input.notifiesInTelegram ? " сюда и в Telegram" : " сюда";
       return link
         ? {

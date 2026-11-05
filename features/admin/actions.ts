@@ -349,3 +349,71 @@ export async function sendReleaseToColleagues(releaseId: string): Promise<{ sent
   );
   return { sentAt: typeof json.sentAt === "string" ? json.sentAt : new Date().toISOString() };
 }
+
+async function sendAdminJson(
+  method: "POST" | "PATCH" | "DELETE",
+  path: string,
+  body: unknown,
+  fallbackError: string
+): Promise<Record<string, unknown>> {
+  await assertAdminAsync();
+  const authHeaders = await getAdminApiAuthHeaders();
+  const res = await fetch(path, {
+    method,
+    credentials: "same-origin",
+    headers: { Accept: "application/json", "Content-Type": "application/json", ...authHeaders },
+    body: JSON.stringify(body),
+    cache: "no-store"
+  });
+  let json: { ok?: boolean; error?: string } & Record<string, unknown> = {};
+  try {
+    json = (await res.json()) as typeof json;
+  } catch {
+    json = {};
+  }
+  if (!res.ok || json.ok !== true) {
+    throw new Error(json.error || fallbackError);
+  }
+  return json;
+}
+
+/** Площадка сняла вышедший релиз: артист видит «Обновляем на площадках». */
+export async function markPlatformIssue(
+  releaseId: string,
+  input: { platforms: string[]; reasons: string[]; note: string; notify: boolean }
+): Promise<{ at: string }> {
+  const json = await sendAdminJson(
+    "POST",
+    `/api/admin/releases/${encodeURIComponent(releaseId)}/platform-issue`,
+    input,
+    "Не удалось сохранить."
+  );
+  return { at: typeof json.platform_issue_at === "string" ? json.platform_issue_at : new Date().toISOString() };
+}
+
+/** Релиз вернулся на площадки. */
+export async function resolvePlatformIssue(releaseId: string, notify = true): Promise<void> {
+  await sendAdminJson(
+    "DELETE",
+    `/api/admin/releases/${encodeURIComponent(releaseId)}/platform-issue`,
+    { notify },
+    "Не удалось сохранить."
+  );
+}
+
+/** Новая обложка релиза: файл уходит прямо в Storage по одноразовой ссылке, потом ставим её релизу. */
+export async function replaceReleaseArtwork(
+  releaseId: string,
+  file: File
+): Promise<{ artworkUrl: string; replacedAt: string }> {
+  const mime = file.type === "image/png" || file.name.toLowerCase().endsWith(".png") ? "image/png" : "image/jpeg";
+  const path = `/api/admin/releases/${encodeURIComponent(releaseId)}/artwork`;
+  const ticket = await sendAdminJson("POST", path, { mime, size: file.size }, "Не удалось подготовить загрузку.");
+  const { createSupabaseBrowser } = await import("@/lib/supabase");
+  const { error } = await createSupabaseBrowser()
+    .storage.from(String(ticket.bucket))
+    .uploadToSignedUrl(String(ticket.path), String(ticket.token), file, { contentType: mime, upsert: true });
+  if (error) throw new Error("Обложка не загрузилась. Проверь интернет и попробуй ещё раз.");
+  const done = await sendAdminJson("PATCH", path, { path: ticket.path }, "Не удалось сохранить обложку.");
+  return { artworkUrl: String(done.artwork_url), replacedAt: String(done.artwork_replaced_at) };
+}

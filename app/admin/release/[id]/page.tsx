@@ -14,6 +14,8 @@ import { AdminReleaseMetadataCard } from "@/components/admin/AdminReleaseMetadat
 import { AdminPaymentPanel } from "@/components/admin/AdminPaymentPanel";
 import { AdminReleaseDatePanel } from "@/components/admin/AdminReleaseDatePanel";
 import { AdminTakedownPanel } from "@/components/admin/AdminTakedownPanel";
+import { AdminPlatformIssuePanel } from "@/components/admin/AdminPlatformIssuePanel";
+import { AdminArtworkPanel } from "@/components/admin/AdminArtworkPanel";
 import { AdminDeleteReleaseSheet } from "@/components/admin/AdminDeleteReleaseSheet";
 import { AdminPressKitPanel } from "@/components/admin/AdminPressKitPanel";
 import { isPitchingOpen, type PressKit } from "@/lib/press-kit";
@@ -314,6 +316,7 @@ export default function AdminReleaseDetailPage() {
   const summary = buildAdminReleaseSummary(release as AdminReleaseRow, tracks);
   const artistUsername = release.telegram_username?.trim().replace(/^@/, "") || null;
   const title = displayTitle || release.track_name || "Релиз";
+  const platformUpdating = canonical === "ready" && Boolean(release.platform_issue_at);
 
   return (
     <div
@@ -387,8 +390,13 @@ export default function AdminReleaseDetailPage() {
                   feat. {featuringNames.join(", ")}
                 </p>
               ) : null}
-              <p className={cn("mt-2 text-[13px] font-medium", ADMIN_STATUS_TONE[canonical] ?? "text-omf-graphite")}>
-                {ADMIN_STATUS_TEXT[canonical] ?? "Статус не определён"}
+              <p
+                className={cn(
+                  "mt-2 text-[13px] font-medium",
+                  platformUpdating ? "text-omf-yellow" : (ADMIN_STATUS_TONE[canonical] ?? "text-omf-graphite")
+                )}
+              >
+                {platformUpdating ? "Обновляем на площадках" : (ADMIN_STATUS_TEXT[canonical] ?? "Статус не определён")}
               </p>
               {summary.length > 0 ? (
                 <p className="mt-1 text-[13px] leading-snug text-omf-faint">{summary.join(" · ")}</p>
@@ -433,6 +441,13 @@ export default function AdminReleaseDetailPage() {
             </aside>
           ) : null}
 
+          <AdminPlatformIssuePanel
+            release={release}
+            title={title}
+            placement="top"
+            onChange={(fields) => setRelease((prev) => (prev ? { ...prev, ...fields } : prev))}
+          />
+
           {/* Артист попросил удалить — показываем сразу, до остальных блоков. */}
           {release.takedown_requested_at || release.status === "removed" ? (
             <AdminTakedownPanel
@@ -446,6 +461,13 @@ export default function AdminReleaseDetailPage() {
             release={release}
             onChange={(fields) => setRelease((prev) => (prev ? { ...prev, ...fields } : prev))}
           />
+
+          {canonical === "ready" || canonical === "processing" ? (
+            <AdminArtworkPanel
+              release={release}
+              onChange={(fields) => setRelease((prev) => (prev ? { ...prev, ...fields } : prev))}
+            />
+          ) : null}
 
           <AdminPaymentPanel
             release={release}
@@ -530,6 +552,13 @@ export default function AdminReleaseDetailPage() {
               releaseLyrics={release.lyrics ?? null}
             />
           </section>
+
+          <AdminPlatformIssuePanel
+            release={release}
+            title={title}
+            placement="bottom"
+            onChange={(fields) => setRelease((prev) => (prev ? { ...prev, ...fields } : prev))}
+          />
 
           {!release.takedown_requested_at && release.status !== "removed" ? (
             <AdminTakedownPanel

@@ -17,6 +17,7 @@ import { triggerHaptic } from "@/lib/telegram";
 import { featuringNamesFromCollaboratorsJson } from "@/lib/collaborators";
 import { describeHistoryDecision, describePreviousRejection } from "@/lib/rejection-reasons";
 import { getReleaseNextStep, pluralRu } from "@/lib/release-next-step";
+import { readPlatformIssue } from "@/lib/platform-issue";
 import { describePayment, type PaymentTone } from "@/lib/release-payment";
 import { cn } from "@/lib/utils";
 
@@ -231,7 +232,13 @@ function AdminReleaseCardInner({
       </div>
       {!showModerationActions ? (
         <StatusRing
-          kind={getReleaseNextStep({ status: release.status, smartLink: release.smart_link }).kind}
+          kind={
+            getReleaseNextStep({
+              status: release.status,
+              smartLink: release.smart_link,
+              platformIssue: readPlatformIssue(release)
+            }).kind
+          }
           size={44}
           className="self-center"
         />
