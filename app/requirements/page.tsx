@@ -24,7 +24,6 @@ export default function RequirementsPage() {
     <AuthGuard>
       <div className="mx-auto min-h-app w-full max-w-lg px-1 pb-40 pt-6 text-omf-ink">
         <ScreenHeader
-          label="Правила и ответы"
           title="Помощь"
           action={<BotAvatar type="blob" color="#2f3fe0" size={44} aria-label="Бот-помощник" />}
         />

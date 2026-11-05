@@ -13,6 +13,7 @@ import { useIsTelegramMiniApp } from "@/lib/hooks/useIsTelegramMiniApp";
 import { useLogout, useWebAuth } from "@/lib/hooks/useWebAuth";
 import type { UserPreferences } from "@/app/api/settings/preferences/route";
 import { ReferralCard } from "@/components/ReferralCard";
+import { pluralRu } from "@/lib/release-next-step";
 
 // ─── Fetcher ──────────────────────────────────────────────────────────────────
 
@@ -61,7 +62,7 @@ function ToggleRow({
   disabled?: boolean;
 }) {
   return (
-    <div className="flex w-full items-center justify-between gap-4 border-b border-omf-line py-4">
+    <div className="flex w-full items-center justify-between gap-4 border-b border-omf-line py-3.5">
       <div className="min-w-0">
         <p className="text-[15px] text-omf-ink">{label}</p>
         {hint ? <p className="mt-0.5 text-[13px] text-omf-graphite">{hint}</p> : null}
@@ -74,7 +75,7 @@ function ToggleRow({
         disabled={disabled}
         onClick={() => onChange(!checked)}
         className={`omf-focus relative inline-flex h-8 w-[52px] shrink-0 items-center rounded-full transition-colors disabled:opacity-50 ${
-          checked ? "bg-omf-ultra" : "bg-omf-line-strong"
+          checked ? "bg-omf-green" : "bg-omf-line-strong"
         }`}
       >
         <span
@@ -87,6 +88,14 @@ function ToggleRow({
   );
 }
 
+const NOTIFY_ROWS = [
+  { key: "push_notifications", label: "Решение модератора", hint: "Принят релиз или нужно что-то поправить" },
+  { key: "notify_draft_reminder", label: "Напоминание о черновике", hint: "Если релиз начат и не отправлен" },
+  { key: "notify_release_day", label: "День выхода релиза", hint: "Поздравим и пришлём ссылку" }
+] as const;
+
+type NotifyKey = (typeof NOTIFY_ROWS)[number]["key"];
+
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
 export default function SettingsPage() {
@@ -96,7 +105,7 @@ export default function SettingsPage() {
   const webUser = useWebAuth();
   const artistName = pickHeroArtistName(releases, greetingName);
   const tgUsername = isTelegramContext ? getTelegramUsername() : null;
-  const accountLine = tgUsername ? `@${tgUsername} в Telegram` : (webUser?.email ?? null);
+  const accountLine = tgUsername ? `@${tgUsername}` : (webUser?.email ?? null);
   const {
     data: prefs,
     isLoading,
@@ -105,25 +114,28 @@ export default function SettingsPage() {
     revalidateOnFocus: false
   });
 
-  const [isSavingPush, setIsSavingPush] = useState(false);
+  const [savingKey, setSavingKey] = useState<NotifyKey | null>(null);
 
   // ─── Handlers ──────────────────────────────────────────────────────────────
 
-  const handleTogglePush = useCallback(
-    async (value: boolean) => {
-      setIsSavingPush(true);
+  const handleToggle = useCallback(
+    async (key: NotifyKey, value: boolean) => {
+      setSavingKey(key);
       try {
-        const updated = await savePreferences({ push_notifications: value });
+        const updated = await savePreferences({ [key]: value });
         await mutate(updated, { revalidate: false });
-        toast.success(value ? "Уведомления включены" : "Уведомления выключены");
       } catch (e) {
         toast.error(e instanceof Error ? e.message : "Не удалось сохранить. Попробуй ещё раз.");
       } finally {
-        setIsSavingPush(false);
+        setSavingKey(null);
       }
     },
     [mutate]
   );
+
+  const total = releases.length;
+  const live = releases.filter((r) => r.status === "ready").length;
+  const inReview = releases.filter((r) => r.status === "processing").length;
 
   // ─── Render ─────────────────────────────────────────────────────────────────
 
@@ -153,32 +165,65 @@ export default function SettingsPage() {
         </div>
       </header>
 
+      {total > 0 ? (
+        <dl className="mt-6 grid grid-cols-3 rounded-[18px] bg-omf-surface px-4 py-3.5">
+          {[
+            [total, pluralRu(total, ["релиз", "релиза", "релизов"])],
+            [live, "на площадках"],
+            [inReview, "на проверке"]
+          ].map(([n, label]) => (
+            <div key={String(label)} className="min-w-0">
+              <dt className="sr-only">{label}</dt>
+              <dd>
+                <span className="block text-[22px] font-bold leading-none tracking-[-0.03em] tabular-nums">{n}</span>
+                <span className="mt-1.5 block text-[13px] leading-tight text-omf-graphite">{label}</span>
+              </dd>
+            </div>
+          ))}
+        </dl>
+      ) : null}
+
+      <section className="mt-7" aria-labelledby="notify-title">
+        <h2 id="notify-title" className="text-[14px] font-semibold text-omf-graphite">
+          Уведомления в Telegram
+        </h2>
+        {!isTelegramContext ? (
+          <p className="border-b border-omf-line py-4 text-[14px] text-omf-graphite">
+            В веб-версии новое видно по метке «Новое» в релизах. Сообщения приходят, когда входишь через Telegram.
+          </p>
+        ) : isLoading ? (
+          <div aria-busy="true">
+            {NOTIFY_ROWS.map((r) => (
+              <div key={r.key} className="flex items-center justify-between border-b border-omf-line py-4">
+                <div className="h-4 w-44 animate-pulse rounded bg-omf-surface" />
+                <div className="h-8 w-[52px] animate-pulse rounded-full bg-omf-surface" />
+              </div>
+            ))}
+          </div>
+        ) : (
+          NOTIFY_ROWS.map((r) => (
+            <ToggleRow
+              key={r.key}
+              label={r.label}
+              hint={r.hint}
+              checked={prefs?.[r.key] ?? true}
+              onChange={(v) => void handleToggle(r.key, v)}
+              disabled={savingKey === r.key}
+            />
+          ))
+        )}
+      </section>
+
       {isTelegramContext ? (
-        <div className="mt-6">
+        <div className="mt-7">
           <ReferralCard />
         </div>
       ) : null}
 
-      <div className="mt-4">
-        {!isTelegramContext ? (
-          <div className="flex items-center justify-between gap-4 border-b border-omf-line py-4">
-            <p className="text-[15px] text-omf-ink">Уведомления</p>
-            <p className="text-right text-[13px] text-omf-graphite">Метка «Новое» в релизах</p>
-          </div>
-        ) : isLoading ? (
-          <div className="flex items-center justify-between border-b border-omf-line py-4" aria-busy="true">
-            <div className="h-4 w-40 animate-pulse rounded bg-omf-surface" />
-            <div className="h-8 w-[52px] animate-pulse rounded-full bg-omf-surface" />
-          </div>
-        ) : (
-          <ToggleRow
-            label="Уведомления"
-            hint="Сообщение в Telegram, когда модератор принял решение"
-            checked={prefs?.push_notifications ?? true}
-            onChange={handleTogglePush}
-            disabled={isSavingPush}
-          />
-        )}
+      <section className="mt-7" aria-labelledby="more-title">
+        <h2 id="more-title" className="text-[14px] font-semibold text-omf-graphite">
+          Ещё
+        </h2>
         <Link
           href="/requirements"
           className="omf-focus flex items-center justify-between gap-4 border-b border-omf-line py-4 text-[15px] text-omf-ink"
@@ -186,7 +231,7 @@ export default function SettingsPage() {
           Помощь и правила
           <ChevronRight className="h-4 w-4 text-omf-faint" aria-hidden />
         </Link>
-      </div>
+      </section>
 
       <WebLogoutButton />
     </div>

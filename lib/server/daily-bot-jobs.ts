@@ -54,7 +54,7 @@ export async function remindUnfinishedDrafts(admin: SupabaseClient, now: Date = 
       .eq("id", row.id)
       .is("draft_reminded_at", null);
     if (markErr) continue;
-    if (await notifyArtist(row, draftReminderMessage(getReleaseDisplayTitle(row), String(row.status)))) sent += 1;
+    if (await notifyArtist(row, draftReminderMessage(getReleaseDisplayTitle(row), String(row.status)), "draft_reminder")) sent += 1;
   }
   return { candidates: data?.length ?? 0, sent };
 }
@@ -81,7 +81,7 @@ export async function congratulateReleaseDay(admin: SupabaseClient, now: Date = 
       .is("release_day_notified_at", null);
     if (markErr) continue;
     const link = row.smart_link?.trim() || null;
-    if (await notifyArtist(row, releaseDayMessage(getReleaseDisplayTitle(row), link))) sent += 1;
+    if (await notifyArtist(row, releaseDayMessage(getReleaseDisplayTitle(row), link), "release_day")) sent += 1;
   }
   return { candidates: data?.length ?? 0, sent };
 }

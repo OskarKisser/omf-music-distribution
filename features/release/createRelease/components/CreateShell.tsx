@@ -89,40 +89,23 @@ export function CreateShell({
       <div className="mx-auto flex w-full max-w-lg flex-col gap-6">
         {!isSuccess ? (
           <header>
-            <button
-              type="button"
-              onClick={goBack}
-              className="omf-focus -ml-2 mb-4 inline-flex items-center gap-1.5 rounded-full px-2 py-1.5 text-[14px] text-omf-graphite transition-colors hover:text-omf-ink"
-            >
-              <ArrowLeft className="h-4 w-4" aria-hidden />
-              {activeIndex === 0 ? "Релизы" : CREATE_FLOW_STEPS[activeIndex - 1]?.label}
-            </button>
-
-            <div className="flex items-center gap-4">
-              <div className="w-[72px] shrink-0">
-                <ReleaseSleeve
-                  seed={releaseId ?? "new-release"}
-                  title={releaseTitle.trim() || "Без названия"}
-                  artist={primaryArtist.trim() || null}
-                  coverUrl={artworkUrl}
-                  size="thumb"
-                />
-              </div>
-              <div className="min-w-0">
-                <p className="truncate text-[22px] font-extrabold leading-tight tracking-[-0.03em]">
-                  {releaseTitle.trim() || "Новый релиз"}
-                </p>
-                <p className="mt-1 truncate text-[14px] text-omf-graphite">
-                  {primaryArtist.trim() || "Артист не указан"}
-                </p>
-                <p className="mt-0.5 text-[13px] text-omf-faint">
-                  Шаг {activeIndex + 1} из {stepCount}: {stepLabel.toLowerCase()}
-                </p>
-              </div>
+            <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-2">
+              <button
+                type="button"
+                onClick={goBack}
+                className="omf-focus -ml-2 inline-flex items-center gap-1.5 justify-self-start rounded-full px-2 py-1.5 text-[14px] text-omf-graphite transition-colors hover:text-omf-ink"
+              >
+                <ArrowLeft className="h-4 w-4" aria-hidden />
+                {activeIndex === 0 ? "Релизы" : CREATE_FLOW_STEPS[activeIndex - 1]?.label}
+              </button>
+              <p className="text-[14px] text-omf-graphite">
+                <span className="font-semibold text-omf-ink">{stepLabel}</span> · шаг {activeIndex + 1} из {stepCount}
+              </p>
+              <span aria-hidden />
             </div>
 
             <div
-              className="mt-5 flex gap-1"
+              className="mt-3 flex gap-1.5"
               role="progressbar"
               aria-label="Шаги создания релиза"
               aria-valuemin={1}
@@ -133,12 +116,31 @@ export function CreateShell({
                 <span
                   key={s.key}
                   className={cn(
-                    "h-[3px] flex-1 rounded-full transition-colors duration-300",
-                    i <= activeIndex ? "bg-omf-ultra" : "bg-omf-line"
+                    "h-1 flex-1 rounded-full transition-colors duration-300",
+                    i <= activeIndex ? "bg-omf-ultra" : "bg-omf-surface-2"
                   )}
                 />
               ))}
             </div>
+
+            {/* Какой релиз собираем — только когда уже есть что показать (название или обложка). */}
+            {releaseTitle.trim() || artworkUrl ? (
+              <div className="mt-4 flex items-center gap-3">
+                <div className="w-10 shrink-0">
+                  <ReleaseSleeve
+                    seed={releaseId ?? "new-release"}
+                    title={releaseTitle.trim() || "Без названия"}
+                    artist={primaryArtist.trim() || null}
+                    coverUrl={artworkUrl}
+                    size="thumb"
+                  />
+                </div>
+                <p className="min-w-0 truncate text-[15px]">
+                  <span className="font-semibold">{releaseTitle.trim() || "Без названия"}</span>
+                  {primaryArtist.trim() ? <span className="text-omf-graphite"> · {primaryArtist.trim()}</span> : null}
+                </p>
+              </div>
+            ) : null}
 
             {moderatorNotes ? (
               <aside
@@ -163,7 +165,7 @@ export function CreateShell({
         <CreateStepTransition>
           <div className="flex flex-col gap-5">
             {title ? (
-              <h2 className="text-[20px] font-bold tracking-[-0.02em] text-omf-ink">{title}</h2>
+              <h2 className="text-[26px] font-bold leading-tight tracking-[-0.04em] text-omf-ink">{title}</h2>
             ) : null}
             {children}
           </div>

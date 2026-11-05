@@ -49,7 +49,6 @@ function PitchingPageInner() {
     <div className="mx-auto min-h-app w-full max-w-lg px-1 pb-40 pt-6 text-omf-ink">
       <PullRefreshBrand />
       <ScreenHeader
-        label="Редакции площадок"
         title="Питчинг"
         intro="Покажем трек редакторам Яндекс Музыки, Сберзвука и VK. Нужны пара предложений и фото."
       />

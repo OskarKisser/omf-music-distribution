@@ -42,21 +42,21 @@ export function MultiLinkReleaseRow({ releaseId, title, artist, smartLink, cover
   };
 
   return (
-    <div className="grid grid-cols-[1fr_40px] items-center gap-3 rounded-[18px] bg-omf-surface p-2.5">
+    <div className="-mx-2 grid grid-cols-[1fr_40px] items-center gap-3 rounded-[14px] px-2 py-2">
       <button
         type="button"
         onClick={() => {
           hapticMap.impactLight();
           openSmartLink(smartLink);
         }}
-        className="omf-focus grid min-w-0 grid-cols-[56px_1fr] items-center gap-3.5 rounded-[12px] text-left transition-transform active:scale-[0.98]"
+        className="omf-focus grid min-w-0 grid-cols-[48px_1fr] items-center gap-3.5 rounded-[12px] text-left transition-transform active:scale-[0.98]"
       >
-        <span className="block w-14">
+        <span className="block w-12">
           <ReleaseSleeve seed={releaseId} title={title} artist={artist} coverUrl={coverUrl} size="thumb" />
         </span>
         <span className="min-w-0">
           <span className="block truncate text-[16px] font-semibold tracking-[-0.01em] text-omf-ink">{title}</span>
-          <span className="mt-0.5 block truncate text-[12.5px] text-omf-ultra-text" title={smartLink}>
+          <span className="mt-0.5 block truncate text-[13px] text-omf-ultra-text" title={smartLink}>
             {lineUrl}
           </span>
         </span>

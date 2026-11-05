@@ -63,36 +63,32 @@ export function ReferralCard() {
       ) : null}
 
       {data.link ? (
-        <>
-          <button
-            type="button"
-            onClick={() => {
-              triggerHaptic("light");
-              void copyLink(data.link!);
-            }}
-            className="omf-focus mt-3 flex h-11 w-full items-center justify-between gap-3 rounded-[12px] bg-omf-bg px-3.5 text-left text-[13.5px] text-omf-ink"
-            aria-label="Скопировать ссылку-приглашение"
-          >
-            <span className="truncate">{data.link.replace(/^https?:\/\//, "")}</span>
-            <Copy className="h-[17px] w-[17px] shrink-0 text-omf-graphite" aria-hidden />
-          </button>
-          <button
-            type="button"
-            onClick={() => {
-              triggerHaptic("light");
-              shareReferralLink(data.link!);
-            }}
-            className="omf-btn-primary mt-2.5 h-12 w-full text-[15px] font-medium"
-          >
-            <Send className="h-[17px] w-[17px]" aria-hidden />
-            Отправить другу
-          </button>
-        </>
+        <button
+          type="button"
+          onClick={() => {
+            triggerHaptic("light");
+            shareReferralLink(data.link!);
+          }}
+          className="omf-focus mt-3.5 flex h-12 w-full items-center justify-center gap-2 rounded-[12px] bg-omf-surface-2 text-[15px] font-medium text-omf-ink transition-transform active:scale-[0.98]"
+        >
+          <Send className="h-[17px] w-[17px]" aria-hidden />
+          Отправить приглашение
+        </button>
       ) : (
         <p className="mt-3 text-[14px] text-omf-graphite">
           Твой код: <span className="font-bold text-omf-ink">{data.code}</span>
         </p>
       )}
+      {data.link ? (
+        <button
+          type="button"
+          onClick={() => void copyLink(data.link!)}
+          className="omf-focus mt-1 flex w-full items-center justify-center gap-1.5 py-2 text-[13px] text-omf-graphite"
+        >
+          <Copy className="h-3.5 w-3.5" aria-hidden />
+          или скопировать ссылку
+        </button>
+      ) : null}
 
       {data.invited > 0 ? (
         <p className="mt-3 flex flex-wrap gap-x-4 gap-y-1 text-[12.5px] text-omf-graphite">

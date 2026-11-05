@@ -28,22 +28,22 @@ export function ReleaseRow({ id, title, artist, coverUrl, kind, statusLine, prio
       onClick={onClick}
       disabled={busy}
       className={cn(
-        "omf-focus grid w-full grid-cols-[56px_1fr_44px] items-center gap-3.5 rounded-[18px] bg-omf-surface p-2.5 text-left transition-transform duration-150 active:scale-[0.98]",
+        "omf-focus -mx-2 grid w-[calc(100%+16px)] grid-cols-[60px_1fr_44px] items-center gap-3.5 rounded-[14px] px-2 py-2 text-left transition-[transform,background-color] duration-150 hover:bg-omf-surface active:scale-[0.98] active:bg-omf-surface",
         busy && "opacity-60"
       )}
     >
-      <span className="relative block w-14">
+      <span className="relative block w-[60px]">
         <ReleaseSleeve seed={id} title={title} artist={artist} coverUrl={coverUrl} size="thumb" priority={priority} />
         {isNew ? (
           <span
-            className="absolute -right-1 -top-1 h-3 w-3 rounded-full border-2 border-omf-surface bg-omf-ultra"
+            className="absolute -right-1 -top-1 h-3 w-3 rounded-full border-2 border-omf-bg bg-omf-ultra"
             aria-label="Новое решение по релизу"
           />
         ) : null}
       </span>
       <span className="min-w-0">
         <span className="block truncate text-[16px] font-semibold tracking-[-0.01em] text-omf-ink">{title}</span>
-        <span className={cn("mt-0.5 block truncate text-[12.5px]", busy ? "text-omf-graphite" : statusLine.className)}>
+        <span className={cn("mt-0.5 block truncate text-[13px]", busy ? "text-omf-graphite" : statusLine.className)}>
           {busy ? "Открываем…" : statusLine.text}
         </span>
       </span>
