@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useFieldArray, useForm } from "react-hook-form";
 import { motion } from "framer-motion";
-import { CheckCircle2, ChevronDown, ChevronUp, UserPlus, X } from "lucide-react";
+import { AlertCircle, CheckCircle2, ChevronDown, ChevronUp, UserPlus, X } from "lucide-react";
 import { CreateShell } from "@/features/release/createRelease/components/CreateShell";
 import { WizardActionBar } from "@/features/release/createRelease/components/WizardActionBar";
 import { StepGate } from "@/features/release/createRelease/components/StepGate";
@@ -696,6 +696,7 @@ export default function CreateTracksPage() {
                             className={`${WIZARD_INPUT_CLASS} min-h-[120px] resize-y py-3`}
                           />
                           <FormFieldError message={errors.tracks?.[index]?.lyrics?.message} />
+                          <LyricsContentNote />
                         </>
                       )}
                     </div>
@@ -715,6 +716,7 @@ export default function CreateTracksPage() {
                         className={`${WIZARD_INPUT_CLASS} min-h-[120px] resize-y py-3`}
                       />
                       <FormFieldError message={errors.tracks?.[index]?.lyrics?.message} />
+                      <LyricsContentNote />
                     </div>
                   )}
                 </>
@@ -757,5 +759,16 @@ export default function CreateTracksPage() {
         </form>
       )}
     </CreateShell>
+  );
+}
+
+/** Напоминание под текстом песни: площадки в России снимают треки с упоминанием наркотиков. */
+function LyricsContentNote() {
+  return (
+    <p className="mt-2 flex items-start gap-2 text-[13px] leading-snug text-omf-graphite">
+      <AlertCircle className="mt-[2px] h-[15px] w-[15px] shrink-0 text-omf-yellow" aria-hidden />
+      Без упоминаний наркотиков: в России площадки снимают такие треки. Если они есть, запикай их в WAV и убери из
+      текста.
+    </p>
   );
 }

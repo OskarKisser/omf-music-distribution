@@ -150,6 +150,7 @@ test.describe("@full-submit Create release submit full-flow with mocked backend"
     });
 
     await navigateTo(page, "/create/review");
+    await page.getByRole("checkbox", { name: /пропаганды наркотиков/i }).check();
     await page.getByRole("checkbox", { name: /выпуск платный/i }).check();
     await page.getByRole("button", { name: /отправить на проверку/i }).click();
 
@@ -196,6 +197,7 @@ test.describe("@full-submit Create release submit full-flow with mocked backend"
     });
 
     await navigateTo(page, "/create/review");
+    await page.getByRole("checkbox", { name: /пропаганды наркотиков/i }).check();
     await page.getByRole("checkbox", { name: /выпуск платный/i }).check();
     await page.getByRole("button", { name: /отправить на проверку/i }).click();
 
