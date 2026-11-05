@@ -13,6 +13,7 @@ import { AdminReleaseDownloads } from "@/components/admin/AdminReleaseDownloads"
 import { AdminReleaseMetadataCard } from "@/components/admin/AdminReleaseMetadataCard";
 import { AdminPaymentPanel } from "@/components/admin/AdminPaymentPanel";
 import { AdminReleaseDatePanel } from "@/components/admin/AdminReleaseDatePanel";
+import { AdminTakedownPanel } from "@/components/admin/AdminTakedownPanel";
 import { AdminDeleteReleaseSheet } from "@/components/admin/AdminDeleteReleaseSheet";
 import { AdminPressKitPanel } from "@/components/admin/AdminPressKitPanel";
 import { isPitchingOpen, type PressKit } from "@/lib/press-kit";
@@ -414,6 +415,14 @@ export default function AdminReleaseDetailPage() {
             </aside>
           ) : null}
 
+          {/* Артист попросил удалить — показываем сразу, до остальных блоков. */}
+          {release.takedown_requested_at || release.status === "removed" ? (
+            <AdminTakedownPanel
+              release={release}
+              onChange={(fields) => setRelease((prev) => (prev ? { ...prev, ...fields } : prev))}
+            />
+          ) : null}
+
           <AdminReleaseDatePanel
             release={release}
             onChange={(fields) => setRelease((prev) => (prev ? { ...prev, ...fields } : prev))}
@@ -501,6 +510,13 @@ export default function AdminReleaseDetailPage() {
               releaseLyrics={release.lyrics ?? null}
             />
           </section>
+
+          {!release.takedown_requested_at && release.status !== "removed" ? (
+            <AdminTakedownPanel
+              release={release}
+              onChange={(fields) => setRelease((prev) => (prev ? { ...prev, ...fields } : prev))}
+            />
+          ) : null}
 
           {/* Тестовые и дубли: удалить насовсем. Внизу и неярко — чтобы не нажать вместо «Вернуть». */}
           <section className="mt-8 border-t border-omf-line pt-4" aria-label="Удаление">

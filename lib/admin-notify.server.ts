@@ -34,13 +34,40 @@ export async function notifyAdminReleaseSubmitted(params: {
   appOrigin?: string | null;
 }): Promise<void> {
   const who = params.telegramId ? ` (tg ${escapeHtml(String(params.telegramId))})` : "";
-  const releaseUrl = adminReleaseWebAppUrl(params.appOrigin, params.releaseId);
   const text =
     `🆕 <b>Новый релиз на модерации</b>\n\n` +
-    `«${escapeHtml(params.title || "без названия")}» — ${escapeHtml(params.artist || "—")}${who}` +
-    (releaseUrl ? "" : `\n\nОткрой админку в мини-приложении, чтобы проверить.`);
+    `«${escapeHtml(params.title || "без названия")}» — ${escapeHtml(params.artist || "—")}${who}`;
+  await sendToAdminWithReleaseButton(text, params.releaseId, params.appOrigin);
+}
+
+/** Артист попросил снять релиз с площадок — модератору снять и подтвердить в админке. */
+export async function notifyAdminTakedownRequested(params: {
+  releaseId: string;
+  title: string;
+  artist: string;
+  telegramId?: string | number | null;
+  reason?: string | null;
+  appOrigin?: string | null;
+}): Promise<void> {
+  const who = params.telegramId ? ` (tg ${escapeHtml(String(params.telegramId))})` : "";
+  const reason = params.reason?.trim() ? `\n\nПричина: ${escapeHtml(params.reason.trim())}` : "";
+  const text =
+    `🗑 <b>Артист просит удалить релиз с площадок</b>\n\n` +
+    `«${escapeHtml(params.title || "без названия")}» — ${escapeHtml(params.artist || "—")}${who}${reason}\n\n` +
+    `Сними релиз у дистрибьютора и нажми «Релиз снят с площадок» в админке.`;
+  await sendToAdminWithReleaseButton(text, params.releaseId, params.appOrigin);
+}
+
+/** Сообщение админу с кнопкой «Открыть релиз» (мини-приложение); без адреса — просто текст. */
+async function sendToAdminWithReleaseButton(
+  text: string,
+  releaseId: string,
+  appOrigin?: string | null
+): Promise<void> {
+  const fallback = `${text}\n\nОткрой админку в мини-приложении.`;
+  const releaseUrl = adminReleaseWebAppUrl(appOrigin, releaseId);
   if (!releaseUrl) {
-    await sendToAdmin(text);
+    await sendToAdmin(fallback);
     return;
   }
   const replyMarkup: InlineKeyboard = {
@@ -56,7 +83,7 @@ export async function notifyAdminReleaseSubmitted(params: {
     // Кнопку не приняли (например, адрес не открывается как мини-приложение) — шлём без неё.
     if (!result.ok) {
       console.error("[admin-notify] with button:", result.error);
-      await sendToAdmin(`${text}\n\nОткрой админку в мини-приложении, чтобы проверить.`);
+      await sendToAdmin(fallback);
     }
   } catch (e) {
     console.error("[admin-notify]", e);

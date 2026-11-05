@@ -36,3 +36,28 @@ export function releaseDateChangedMessage(title: string, releaseDate: string): s
   const date = formatReleaseDateDayMonthRu(releaseDate) ?? escapeHtml(releaseDate);
   return `📅 <b>Дата выхода «${safeTitle(title)}» — ${date}.</b>\n\nМы обновили её в релизе.`;
 }
+
+/** Модератор снял релиз с площадок по просьбе артиста. */
+export function releaseRemovedMessage(title: string): string {
+  return (
+    `🗑 <b>Релиз «${safeTitle(title)}» удалён с площадок.</b>\n\n` +
+    `Площадкам нужно до нескольких дней, чтобы убрать его у слушателей. Данные релиза остались в приложении.`
+  );
+}
+
+/** Ежедневное напоминание: релиз начат больше суток назад и не отправлен. */
+export function draftReminderMessage(title: string, status: string): string {
+  const next =
+    status === "pending"
+      ? "Файлы уже загружены — осталось открыть релиз и нажать «Отправить на проверку»."
+      : "Черновик сохранён — открой приложение и допиши релиз, это пара минут.";
+  return `🎵 <b>Релиз «${safeTitle(title)}» ждёт отправки.</b>\n\n${next}`;
+}
+
+/** День выхода релиза: поздравление и ссылка, чтобы сразу поделиться. */
+export function releaseDayMessage(title: string, link: string | null): string {
+  const head = `🎉 <b>Сегодня выходит «${safeTitle(title)}»!</b>\n\n`;
+  return link
+    ? `${head}Поделись ссылкой со слушателями и в соцсетях: <a href="${escapeHtml(link)}">${escapeHtml(link)}</a>`
+    : `${head}Релиз появится на площадках в течение дня. Поздравляем!`;
+}

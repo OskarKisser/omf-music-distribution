@@ -3,7 +3,8 @@ export const RELEASE_STATUS_VALUES = [
   "pending",
   "processing",
   "ready",
-  "failed"
+  "failed",
+  "removed"
 ] as const;
 
 export type ReleaseStatus = (typeof RELEASE_STATUS_VALUES)[number];

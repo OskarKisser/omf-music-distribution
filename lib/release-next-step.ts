@@ -14,6 +14,7 @@ export type NextStepKind =
   | "waiting_long"
   | "approved_link"
   | "approved_no_link"
+  | "removed"
   | "unknown";
 
 /** Цвет строки: action — нужен шаг артиста, problem — вернули, wait — ждём, done — готово. */
@@ -131,6 +132,15 @@ export function getReleaseNextStep(input: NextStepInput, now: Date = new Date())
             needsAction: false
           };
     }
+    case "removed":
+      return {
+        kind: "removed",
+        tone: "muted",
+        cardLine: "Удалён с площадок",
+        title: "Удалён с площадок",
+        body: "Релиз снят со всех площадок по твоей просьбе. Данные релиза остались здесь — для истории.",
+        needsAction: false
+      };
     default:
       return {
         kind: "unknown",

@@ -112,6 +112,15 @@ export type ReleaseRecord = {
   payment_updated_by?: string | null;
   /** Когда артист принял условия перед отправкой. */
   terms_accepted_at?: string | null;
+  /** Артист попросил снять релиз с площадок (ждёт подтверждения модератора). */
+  takedown_requested_at?: string | null;
+  takedown_reason?: string | null;
+  /** Бот напомнил дописать черновик (cron). */
+  draft_reminded_at?: string | null;
+  /** Бот поздравил с выходом в день релиза (cron). */
+  release_day_notified_at?: string | null;
+  /** Форма релиза отправлена в рабочий чат коллег. */
+  colleagues_sent_at?: string | null;
 } & ReleaseStep2Payload;
 
 export type UploadAssetOptions = {
