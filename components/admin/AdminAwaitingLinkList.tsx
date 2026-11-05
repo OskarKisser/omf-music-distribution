@@ -35,9 +35,9 @@ export function AdminAwaitingLinkList({
       <p className={cn("text-[13px] leading-snug text-omf-graphite", asTab ? "" : "mt-0.5")}>
         Когда площадки выдадут UPC, сделай ссылку BandLink и добавь её сюда. Обычно {DSP_REVIEW_DAYS_TEXT}.
       </p>
-      <ul className="mt-3 flex flex-col gap-2">
+      <ul className="mt-2 flex flex-col">
         {visible.map((r) => (
-          <li key={r.id} className="flex items-center gap-3 rounded-[18px] bg-omf-surface p-2.5">
+          <li key={r.id} className="flex items-center gap-3 border-b border-omf-line py-3">
             <Link
               href={`/admin/release/${r.id}`}
               className="omf-focus flex min-w-0 flex-1 items-center gap-3 rounded-[10px]"

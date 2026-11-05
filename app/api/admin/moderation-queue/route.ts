@@ -5,6 +5,7 @@ import { getTelegramAuthContextFromRequest } from "@/lib/api/with-telegram-auth"
 import type { ReleaseRecord } from "@/repositories/releases.repo";
 import { attachTracksToReleases, loadTracksForReleases } from "@/lib/server/admin-release-rows";
 import type { ModerationQueueApiRow } from "@/types/admin";
+import { loadSubmittedAt } from "@/lib/server/release-submitted-at";
 
 export const dynamic = "force-dynamic";
 
@@ -26,10 +27,16 @@ async function handleModerationQueue(request: NextRequest): Promise<Response> {
 
   const list = (releases ?? []) as ReleaseRecord[];
   // Треки всех релизов очереди одним запросом: очередь опрашивается каждые 8 с.
-  const tracks = await loadTracksForReleases(
-    guard.supabase,
-    list.map((r) => r.id)
-  );
+  const ids = list.map((r) => r.id);
+  // Когда ушёл на проверку — для «ждёт N ч» в строке очереди.
+  const [tracks, submitted] = await Promise.all([
+    loadTracksForReleases(guard.supabase, ids),
+    loadSubmittedAt(guard.supabase, ids)
+  ]);
+  for (const r of list) {
+    const at = submitted.get(r.id);
+    if (at) (r as ReleaseRecord & { submitted_at?: string }).submitted_at = at;
+  }
   if (tracks == null) {
     return NextResponse.json({ ok: false, error: "Не удалось загрузить треки." }, { status: 500 });
   }

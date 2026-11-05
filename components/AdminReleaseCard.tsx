@@ -36,13 +36,25 @@ function statusTextClass(status: CanonicalReleaseStatus): string {
   if (status === "failed") return "text-omf-red";
   return "text-omf-graphite";
 }
-/** Оплата плашкой: цвет по смыслу, чтобы видеть с одного взгляда. */
-const PAYMENT_PILL_CLASS: Record<PaymentTone, string> = {
-  done: "bg-[rgba(31,157,99,0.16)] text-[#3ccf8e]",
-  wait: "bg-[rgba(245,217,10,0.13)] text-omf-yellow",
-  problem: "bg-[rgba(229,72,77,0.14)] text-[#ff8a8d]",
-  muted: "bg-omf-surface-2 text-omf-graphite"
+/** Оплата текстом и только когда что-то не так: «оплачено» — обычное состояние, его не показываем. */
+const PAYMENT_TEXT_CLASS: Record<PaymentTone, string> = {
+  done: "text-omf-green",
+  wait: "text-omf-yellow",
+  problem: "text-omf-yellow",
+  muted: "text-omf-faint"
 };
+
+/** «ждёт 40 мин», «ждёт 26 ч», «ждёт 3 дн» + цвет: больше суток — красный, больше 12 ч — жёлтый. */
+export function describeQueueWait(since: string | null | undefined, now: number = Date.now()) {
+  const t = since ? new Date(since).getTime() : NaN;
+  if (!Number.isFinite(t)) return null;
+  const minutes = Math.max(0, Math.round((now - t) / 60000));
+  const hours = Math.floor(minutes / 60);
+  const label =
+    minutes < 60 ? `ждёт ${Math.max(1, minutes)} мин` : hours < 48 ? `ждёт ${hours} ч` : `ждёт ${Math.floor(hours / 24)} дн`;
+  const tone = hours >= 24 ? "text-omf-red" : hours >= 12 ? "text-omf-yellow" : "text-omf-graphite";
+  return { label, tone };
+}
 
 function releaseTypeLabel(type: ReleaseRecord["release_type"]): string {
   if (type === "single") return "Сингл";
@@ -135,13 +147,19 @@ function AdminReleaseCardInner({
   const previousRejection = showModerationActions ? describePreviousRejection(release) : null;
   /** В истории: почему вернули / какая ссылка ушла артисту. */
   const decisionLine = showModerationActions ? null : describeHistoryDecision(release);
+  const trackCount = tracks.length;
+  const wait = showModerationActions
+    ? describeQueueWait((release as ReleaseRecord & { submitted_at?: string | null }).submitted_at ?? release.created_at)
+    : null;
   const metaLine = [
     releaseTypeLabel(release.release_type),
-    release.genre?.trim() || null,
-    `${showModerationActions ? "отправлен" : "создан"} ${createdAtLabel}`
+    trackCount > 1 ? `${trackCount} ${pluralRu(trackCount, ["трек", "трека", "треков"])}` : null,
+    showModerationActions ? null : `создан ${createdAtLabel}`
   ]
     .filter(Boolean)
     .join(" · ");
+  const errorText = (release.error_message ?? "").trim();
+  const showPayment = payment.tone !== "done";
 
   const header = (
     <>
@@ -174,7 +192,15 @@ function AdminReleaseCardInner({
             feat. {featuringLabel}
           </p>
         ) : null}
-        <p className="mt-0.5 text-[12.5px] text-omf-faint">{metaLine}</p>
+        <p className="mt-0.5 text-[13px] text-omf-faint">
+          {metaLine}
+          {wait ? (
+            <>
+              {" · "}
+              <span className={wait.tone}>{wait.label}</span>
+            </>
+          ) : null}
+        </p>
         {decisionLine ? (
           <p className="mt-1.5 line-clamp-2 break-words text-[13px] leading-snug text-omf-graphite">
             {decisionLine}
@@ -193,15 +219,15 @@ function AdminReleaseCardInner({
             ) : null}
           </p>
         ) : null}
-        <p className="mt-2 flex flex-wrap items-center gap-1.5 text-[11.5px] font-semibold">
-          {showModerationActions && canonical !== "processing" ? (
-            <span className={statusTextClass(canonical)}>{STATUS_LABEL[canonical]}</span>
-          ) : null}
-          <span className={cn("rounded-full px-2 py-[3px]", PAYMENT_PILL_CLASS[payment.tone])}>{payment.label}</span>
-          {hasError ? (
-            <span className="rounded-full bg-[rgba(229,72,77,0.14)] px-2 py-[3px] text-[#ff8a8d]">есть ошибка</span>
-          ) : null}
-        </p>
+        {showModerationActions && canonical !== "processing" ? (
+          <p className={cn("mt-1 text-[13px]", statusTextClass(canonical))}>{STATUS_LABEL[canonical]}</p>
+        ) : null}
+        {hasError ? <p className="mt-1 line-clamp-2 text-[13px] leading-snug text-[#ff9a9d]">{errorText}</p> : null}
+        {showPayment ? (
+          <p className={cn("mt-1 text-[13px]", PAYMENT_TEXT_CLASS[payment.tone])}>
+            {payment.label.charAt(0).toUpperCase() + payment.label.slice(1)}
+          </p>
+        ) : null}
       </div>
       {!showModerationActions ? (
         <StatusRing
@@ -214,7 +240,7 @@ function AdminReleaseCardInner({
   );
 
   return (
-    <article className="rounded-[18px] bg-omf-surface p-3">
+    <article className="border-b border-omf-line py-3.5">
       {selectMode ? (
         <button
           type="button"
@@ -255,7 +281,7 @@ function AdminReleaseCardInner({
       ) : null}
 
       {showModerationActions && !selectMode ? (
-        <div className="mt-3 grid grid-cols-2 gap-2">
+        <div className="ml-[68px] mt-2.5 flex items-center gap-2">
           <button
             type="button"
             disabled={busy}
@@ -263,7 +289,7 @@ function AdminReleaseCardInner({
               triggerHaptic("light");
               onOpenApprove();
             }}
-            className="omf-btn-primary min-h-[42px] w-full rounded-[12px] text-[14px] font-medium disabled:opacity-50"
+            className="omf-btn-primary h-9 min-h-0 rounded-[10px] px-4 text-[14px] font-medium disabled:opacity-50"
           >
             Принять
           </button>
@@ -274,10 +300,15 @@ function AdminReleaseCardInner({
               triggerHaptic("light");
               onOpenReject();
             }}
-            className="omf-focus min-h-[42px] w-full rounded-[12px] bg-omf-surface-2 text-[14px] font-medium text-omf-ink transition-transform active:scale-[0.98] disabled:opacity-50"
+            className="omf-focus h-9 rounded-[10px] bg-omf-surface-2 px-4 text-[14px] font-medium text-omf-ink transition-transform active:scale-[0.98] disabled:opacity-50"
           >
             Вернуть
           </button>
+          {detailHref ? (
+            <Link href={detailHref} className="omf-focus ml-auto py-2 pl-2 text-[14px] text-omf-graphite hover:text-omf-ink">
+              Открыть ›
+            </Link>
+          ) : null}
         </div>
       ) : null}
     </article>

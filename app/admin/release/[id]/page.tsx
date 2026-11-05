@@ -45,6 +45,22 @@ import { featuringNamesFromCollaboratorsJson } from "@/lib/collaborators";
 import { describePreviousRejection } from "@/lib/rejection-reasons";
 import { pluralRu } from "@/lib/release-next-step";
 
+/** Статус строкой под артистом вместо наклейки на обложке. */
+const ADMIN_STATUS_TEXT: Partial<Record<string, string>> = {
+  draft: "Черновик",
+  pending: "Не отправлен",
+  processing: "На проверке",
+  ready: "Принят",
+  failed: "Вернули артисту",
+  removed: "Снят с площадок"
+};
+const ADMIN_STATUS_TONE: Partial<Record<string, string>> = {
+  processing: "text-omf-yellow",
+  ready: "text-omf-green",
+  failed: "text-omf-red",
+  removed: "text-omf-graphite"
+};
+
 
 function buildAudioItems(release: ReleaseRecord, tracks: ReleaseTrackRow[]) {
   if (tracks.length > 0) {
@@ -354,26 +370,28 @@ export default function AdminReleaseDetailPage() {
       <div className={cn(wide && "lg:grid lg:grid-cols-[minmax(0,360px)_minmax(0,1fr)] lg:items-start lg:gap-10")}>
         <div className={cn(wide && "lg:sticky lg:top-6")}>
           <header className={cn("flex items-start gap-4", wide && "lg:flex-col")}>
-            <div className={cn("w-[38%] max-w-[168px] shrink-0", wide && "lg:w-full lg:max-w-[360px]")}>
+            <div className={cn("w-[112px] shrink-0", wide && "lg:w-full lg:max-w-[360px]")}>
               <ReleaseSleeve
                 seed={release.id}
                 title={title}
                 artist={release.artist_name}
                 coverUrl={release.artwork_url}
-                status={canonical}
                 priority
               />
             </div>
             <div className="min-w-0 flex-1 pt-1">
-              <h1 className="break-words text-[24px] font-extrabold leading-[1] tracking-[-0.03em]">{title}</h1>
+              <h1 className="break-words text-[22px] font-bold leading-[1.1] tracking-[-0.03em]">{title}</h1>
               <p className="mt-1.5 text-[15px] text-omf-graphite">{release.artist_name}</p>
               {featuringNames.length > 0 ? (
                 <p className="mt-0.5 truncate text-[13px] text-omf-graphite" title={featuringNames.join(", ")}>
                   feat. {featuringNames.join(", ")}
                 </p>
               ) : null}
+              <p className={cn("mt-2 text-[13px] font-medium", ADMIN_STATUS_TONE[canonical] ?? "text-omf-graphite")}>
+                {ADMIN_STATUS_TEXT[canonical] ?? "Статус не определён"}
+              </p>
               {summary.length > 0 ? (
-                <p className="mt-2 text-[13px] leading-snug text-omf-faint">{summary.join(" · ")}</p>
+                <p className="mt-1 text-[13px] leading-snug text-omf-faint">{summary.join(" · ")}</p>
               ) : null}
               {artistUsername ? (
                 <button
@@ -423,6 +441,7 @@ export default function AdminReleaseDetailPage() {
             />
           ) : null}
 
+          <div className="mt-6 border-t border-omf-line">
           <AdminReleaseDatePanel
             release={release}
             onChange={(fields) => setRelease((prev) => (prev ? { ...prev, ...fields } : prev))}
@@ -440,9 +459,10 @@ export default function AdminReleaseDetailPage() {
                 .catch(() => {});
             }}
           />
+          </div>
 
           <section className="mt-6" aria-labelledby="admin-listen">
-            <h2 id="admin-listen" className="mb-2 text-[13px] text-omf-graphite">
+            <h2 id="admin-listen" className="mb-2 text-[14px] font-semibold text-omf-graphite">
               Послушать
             </h2>
             {audioItems.length === 0 ? (
@@ -496,10 +516,10 @@ export default function AdminReleaseDetailPage() {
           ) : null}
 
           <section className="mt-2 border-t border-omf-line pt-4" aria-labelledby="admin-files">
-            <h2 id="admin-files" className="mb-2 text-[13px] text-omf-graphite">
-              Файлы
+            <h2 id="admin-files" className="mb-2.5 text-[14px] font-semibold text-omf-graphite">
+              Коллегам и файлы
             </h2>
-            <div className="mb-5">
+            <div className="mb-3">
               <AdminColleagueFormCopy release={release} tracks={tracks} />
             </div>
             <AdminReleaseDownloads
