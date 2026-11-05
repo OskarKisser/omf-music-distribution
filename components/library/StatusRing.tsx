@@ -1,4 +1,4 @@
-import { AlertCircle, ArrowUp, Ban, Check, Clock, Pencil, Radio, type LucideIcon } from "lucide-react";
+import { AlertCircle, ArrowUp, Ban, Check, Clock, Pencil, Radio, RefreshCw, type LucideIcon } from "lucide-react";
 import type { NextStepKind } from "@/lib/release-next-step";
 import { cn } from "@/lib/utils";
 
@@ -11,6 +11,7 @@ const RING: Record<NextStepKind, { progress: number; color: string; Icon: Lucide
   waiting_long: { progress: 0.5, color: "var(--omf-yellow)", Icon: Clock },
   approved_no_link: { progress: 0.75, color: "var(--omf-green)", Icon: Radio },
   approved_link: { progress: 1, color: "var(--omf-green)", Icon: Check },
+  updating: { progress: 0.75, color: "var(--omf-yellow)", Icon: RefreshCw },
   removed: { progress: 0, color: "var(--omf-faint)", Icon: Ban },
   unknown: { progress: 0, color: "var(--omf-faint)", Icon: Clock }
 };

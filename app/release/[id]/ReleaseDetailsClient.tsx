@@ -31,6 +31,7 @@ import {
   type ReleaseNextStep
 } from "@/lib/release-next-step";
 import { StatusRing } from "@/components/library/StatusRing";
+import { formatPlatforms, readPlatformIssue } from "@/lib/platform-issue";
 import { ReleaseTakedownRequest } from "@/components/ReleaseTakedownRequest";
 import { useCreateReleaseDraftStore } from "@/features/release/createRelease/store";
 import { hapticMap } from "@/lib/haptic-map";
@@ -70,6 +71,9 @@ type ReleaseDetailsRow = {
   collaborators?: unknown;
   music_author?: string | null;
   takedown_requested_at?: string | null;
+  platform_issue_platforms?: string[] | null;
+  platform_issue_reasons?: string[] | null;
+  platform_issue_at?: string | null;
   tracks: ReleaseDetailsTrackRow[];
 };
 
@@ -391,11 +395,13 @@ export default function ReleaseDetailsClient() {
   const dataSummary = [typeLabel, releaseDateLabel?.replace(/\s\d{4}$/, "")].filter(Boolean).join(", ");
 
   const notifiesInTelegram = userId != null;
+  const platformIssue = readPlatformIssue(release);
   const status = getReleaseNextStep({
     status: release.status,
     smartLink,
     submittedAt: release.submitted_at,
-    notifiesInTelegram
+    notifiesInTelegram,
+    platformIssue
   });
   const headline = statusHeadline(status);
 
@@ -427,10 +433,23 @@ export default function ReleaseDetailsClient() {
               {headline.title}
             </h2>
             <p className="mt-0.5 text-[13.5px] leading-snug text-omf-graphite">
-              {statusLine(status.kind, notifiesInTelegram)}
+              {status.kind === "updating" ? status.body : statusLine(status.kind, notifiesInTelegram)}
             </p>
           </div>
         </div>
+
+        {status.kind === "updating" && platformIssue ? (
+          <dl className="mt-4 border-t border-omf-line text-[15px]">
+            <div className="flex items-center justify-between gap-3 border-b border-omf-line py-3">
+              <dt className="min-w-0">{formatPlatforms(platformIssue.platforms)}</dt>
+              <dd className="shrink-0 text-[14px] text-omf-yellow">обновляем</dd>
+            </div>
+            <div className="flex items-center justify-between gap-3 border-b border-omf-line py-3">
+              <dt>Остальные площадки</dt>
+              <dd className="shrink-0 text-[14px] text-omf-green">на месте</dd>
+            </div>
+          </dl>
+        ) : null}
 
         {status.kind === "fix" ? (
           <RejectionNotice
@@ -477,6 +496,11 @@ export default function ReleaseDetailsClient() {
               {smartLink.replace(/^https?:\/\//, "").replace(/\/$/, "")}
               <ArrowUpRight className="h-3.5 w-3.5" aria-hidden />
             </button>
+            {platformIssue ? (
+              <p className="mt-1 text-center text-[13px] text-omf-faint">
+                Ссылка работает. Когда площадки вернут релиз, он появится в ней сам.
+              </p>
+            ) : null}
           </>
         ) : null}
 

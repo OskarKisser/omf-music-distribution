@@ -29,6 +29,8 @@ const RELEASE_LIST_SELECT = [
 ].join(",");
 /** `rejection_reasons` — из миграции 20261012190000; без неё список грузится по базовому набору. */
 const RELEASE_LIST_SELECT_WITH_REASONS = `${RELEASE_LIST_SELECT},rejection_reasons`;
+/** Площадка сняла релиз — миграция 20261105180000; без неё откатываемся на набор выше. */
+const RELEASE_LIST_SELECT_FULL = `${RELEASE_LIST_SELECT_WITH_REASONS},platform_issue_platforms,platform_issue_at`;
 const RELEASES_CACHE_TTL_SECONDS = 20;
 type ReleaseListRow = ReleaseListBaseRow & {
   /** Когда ушёл на проверку (последний finalize), только для `processing`. */
@@ -52,6 +54,8 @@ type ReleaseListBaseRow = Pick<
   | "smart_link"
   | "release_date"
   | "rejection_reasons"
+  | "platform_issue_platforms"
+  | "platform_issue_at"
 >;
 
 async function handleGetMyReleases(request: NextRequest): Promise<Response> {
@@ -129,7 +133,10 @@ async function handleGetMyReleases(request: NextRequest): Promise<Response> {
     return admin.from("releases").select(select).or(ownerFilter).order("created_at", { ascending: false });
   };
 
-  let { data, error } = await runQuery(RELEASE_LIST_SELECT_WITH_REASONS);
+  let { data, error } = await runQuery(RELEASE_LIST_SELECT_FULL);
+  if (error && /platform_issue/i.test(error.message ?? "")) {
+    ({ data, error } = await runQuery(RELEASE_LIST_SELECT_WITH_REASONS));
+  }
   if (error && isMissingReleasesColumnError(error, "rejection_reasons")) {
     ({ data, error } = await runQuery(RELEASE_LIST_SELECT));
   }

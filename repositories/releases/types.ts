@@ -121,6 +121,14 @@ export type ReleaseRecord = {
   release_day_notified_at?: string | null;
   /** Форма релиза отправлена в рабочий чат коллег. */
   colleagues_sent_at?: string | null;
+  /** Площадка сняла вышедший релиз, ждём возврата (см. lib/platform-issue.ts). */
+  platform_issue_platforms?: string[] | null;
+  platform_issue_reasons?: string[] | null;
+  platform_issue_note?: string | null;
+  platform_issue_at?: string | null;
+  platform_issue_resolved_at?: string | null;
+  /** Модератор заменил обложку после выпуска. */
+  artwork_replaced_at?: string | null;
 } & ReleaseStep2Payload;
 
 export type UploadAssetOptions = {
