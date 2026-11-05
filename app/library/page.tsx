@@ -8,7 +8,7 @@ import { PullRefreshBrand } from "@/components/PullRefreshBrand";
 import { ReleaseRow } from "@/components/library/ReleaseRow";
 import { ReferralInviteLink } from "@/components/ReferralCard";
 import { ReferralWelcome, useReferralDiscountPending } from "@/components/ReferralWelcome";
-import { FirstReleaseEmpty } from "@/components/library/FirstReleaseEmpty";
+import { FirstReleaseEmpty, type FirstReleaseFormat } from "@/components/library/FirstReleaseEmpty";
 import { LibraryReleaseSkeletonGrid } from "@/components/ui/LibrarySkeleton";
 import { reopenRejectedRelease, resumeDraftFromRelease } from "@/features/release/createRelease/actions";
 import { prepareNewReleaseDraft, useCreateReleaseDraftStore } from "@/features/release/createRelease/store";
@@ -28,7 +28,7 @@ import { getReleaseNextStep, NEXT_STEP_TONE_CLASS, pluralRu } from "@/lib/releas
 import { releaseTypeLabel } from "@/lib/release-type-label";
 import { ReleaseSleeve } from "@/components/ReleaseSleeve";
 import { describeRejection, type RejectionSummary } from "@/lib/rejection-reasons";
-import { getTelegramInitDataForApiHeader, getTelegramUserIdForSupabaseRequests } from "@/lib/telegram";
+import { getTelegramInitDataForApiHeader, getTelegramUserIdForSupabaseRequests, getTelegramUsername } from "@/lib/telegram";
 import { FullScreenLoader } from "@/components/FullScreenLoader";
 
 
@@ -248,11 +248,14 @@ function LibraryPageInner() {
     [releases]
   );
 
-  const handleCreate = useCallback(() => {
-    hapticMap.impactLight();
-    prepareNewReleaseDraft();
-    router.push("/create/metadata");
-  }, [router]);
+  const handleCreate = useCallback(
+    (format?: FirstReleaseFormat) => {
+      hapticMap.impactLight();
+      prepareNewReleaseDraft();
+      router.push(format ? `/create/metadata?format=${format}` : "/create/metadata");
+    },
+    [router]
+  );
 
   const handleResumeDraft = useCallback(
     async (release: ReleaseListRow) => {
@@ -449,7 +452,7 @@ function LibraryPageInner() {
             </Link>
             <button
               type="button"
-              onClick={handleCreate}
+              onClick={() => handleCreate()}
               className="omf-focus flex h-10 shrink-0 items-center gap-1.5 rounded-full bg-omf-ink px-4 text-[15px] font-semibold text-omf-bg transition-transform active:scale-95"
             >
               <Plus className="h-4 w-4" strokeWidth={2.4} aria-hidden />
@@ -518,6 +521,7 @@ function LibraryPageInner() {
         ) : showEmptyState && isEmpty ? (
           <FirstReleaseEmpty
             artistName={heroArtistName}
+            username={isTelegram ? getTelegramUsername() : null}
             onCreate={handleCreate}
             referralDiscountPending={referralDiscountPending}
             showInvite={isTelegram}

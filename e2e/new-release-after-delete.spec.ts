@@ -34,7 +34,8 @@ test("@regression «Создать релиз» не подтягивает че
   });
 
   await page.goto("/library?devUserId=1");
-  await page.getByRole("button", { name: /^создать релиз$/i }).click();
+  // Пустая библиотека: первый релиз начинается с выбора формата.
+  await page.getByRole("button", { name: /^сингл/i }).click();
   await page.waitForURL(/\/create\/metadata/);
 
   await expect(page.getByPlaceholder(/основное название релиза/i)).toHaveValue("");
