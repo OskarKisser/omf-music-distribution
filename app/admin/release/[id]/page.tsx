@@ -8,6 +8,7 @@ import { createPortal } from "react-dom";
 import useSWR from "swr";
 import { toast } from "sonner";
 import { AudioPlayerLazy } from "@/components/AudioPlayerLazy";
+import { openSmartLink } from "@/lib/open-smart-link";
 import { AdminColleagueFormCopy } from "@/components/admin/AdminColleagueFormCopy";
 import { AdminReleaseDownloads } from "@/components/admin/AdminReleaseDownloads";
 import { AdminReleaseMetadataCard } from "@/components/admin/AdminReleaseMetadataCard";
@@ -311,6 +312,9 @@ export default function AdminReleaseDetailPage() {
 
   const canonical = normalizeReleaseStatus(release.status);
   const audioItems = buildAudioItems(release, tracks);
+  const smartLink = (release.smart_link ?? "").trim();
+  // Ссылку выдают только через publish-release-smart-link, и он сразу удаляет WAV: плеер грузить нечего.
+  const audioArchived = smartLink.length > 0;
   const canModerate = canonical === "processing";
   const awaitingLink = canonical === "ready" && !(release.smart_link ?? "").trim();
   const displayTitle = getReleaseDisplayTitle(release);
@@ -491,7 +495,18 @@ export default function AdminReleaseDetailPage() {
             <h2 id="admin-listen" className="mb-2 text-[14px] font-semibold text-omf-graphite">
               Послушать
             </h2>
-            {audioItems.length === 0 ? (
+            {audioArchived ? (
+              <p className="text-[14px] leading-snug text-omf-graphite">
+                Релиз на площадках. WAV удалили из хранилища после выдачи ссылки, чтобы не занимать место, — так и должно быть.{" "}
+                <button
+                  type="button"
+                  onClick={() => openSmartLink(smartLink)}
+                  className="omf-focus text-omf-ultra-text"
+                >
+                  Слушать на площадках
+                </button>
+              </p>
+            ) : audioItems.length === 0 ? (
               <p className="text-[14px] text-omf-graphite">Аудио в базе нет, послушать нечего.</p>
             ) : (
               <div className="space-y-2.5">
