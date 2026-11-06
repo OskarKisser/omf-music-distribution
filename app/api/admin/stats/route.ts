@@ -7,6 +7,10 @@ import type { AdminStatsResponse, AdminStuckRelease } from "@/types/admin";
 /** Через сколько минут после создания незавершённый релиз считается застрявшим. */
 const STUCK_AFTER_MIN = 30;
 
+function stuckDupKey(telegramId: unknown, title: string | null | undefined): string {
+  return `${String(telegramId ?? "").trim()}|${(title ?? "").trim().toLowerCase()}`;
+}
+
 function startOfUtcDayIso(): string {
   const d = new Date();
   d.setUTCHours(0, 0, 0, 0);
@@ -128,7 +132,31 @@ async function handleAdminStats(request: NextRequest): Promise<Response> {
       .gte("created_at", since30)
       .order("created_at", { ascending: false })
       .limit(20);
+    // Брошенный черновик-дубль: тот же артист потом отправил релиз с тем же названием.
+    // Такой черновик не «застрял» — напоминать не о чем.
+    const stuckTgIds = Array.from(
+      new Set((stuckRows ?? []).map((r) => String((r as { telegram_id?: unknown }).telegram_id ?? "").trim()).filter(Boolean))
+    );
+    const submittedAt = new Map<string, string>();
+    if (stuckTgIds.length > 0) {
+      const { data: sentRows } = await supabase
+        .from("releases")
+        .select("telegram_id, title, track_name, created_at")
+        .in("telegram_id", stuckTgIds)
+        .not("status", "in", "(draft,pending)")
+        .gte("created_at", since30)
+        .limit(500);
+      for (const s of sentRows ?? []) {
+        const row = s as { telegram_id: unknown; title: string | null; track_name: string | null; created_at: string };
+        const key = stuckDupKey(row.telegram_id, row.title || row.track_name);
+        const prev = submittedAt.get(key);
+        if (!prev || row.created_at > prev) submittedAt.set(key, row.created_at);
+      }
+    }
     for (const r of stuckRows ?? []) {
+      const dup = r as { telegram_id?: unknown; title?: string | null; track_name?: string | null; created_at: string };
+      const sentAt = submittedAt.get(stuckDupKey(dup.telegram_id, dup.title || dup.track_name));
+      if (sentAt && new Date(sentAt).getTime() >= new Date(dup.created_at).getTime()) continue;
       const row = r as {
         id: string;
         title: string | null;
