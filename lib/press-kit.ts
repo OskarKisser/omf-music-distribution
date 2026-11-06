@@ -82,3 +82,30 @@ export function formatPressKitUpdatedAt(iso: string): string {
   const time = d.toLocaleTimeString("ru-RU", { hour: "2-digit", minute: "2-digit" });
   return `${day}, ${time}`;
 }
+
+/** Повторную правку раньше этого срока админу не шлём: артист часто сохраняет несколько раз подряд. */
+export const PRESS_KIT_UPDATE_NOTICE_COOLDOWN_MS = 10 * 60 * 1000;
+
+type PressKitNoticeRow = { press_text: string | null; photo_path: string | null; updated_at?: string | null };
+
+function isPressKitRowFilled(row: PressKitNoticeRow | null | undefined): boolean {
+  return Boolean(row?.press_text?.trim() || row?.photo_path);
+}
+
+/**
+ * Какое уведомление админу слать после сохранения питчинга:
+ * «filled» — впервые заполнен, «updated» — правка спустя паузу, null — молчим.
+ */
+export function pressKitNoticeKind(
+  prev: PressKitNoticeRow | null | undefined,
+  next: PressKitNoticeRow,
+  now: number = Date.now()
+): "filled" | "updated" | null {
+  if (!isPressKitRowFilled(next)) return null;
+  const changed = (prev?.press_text ?? null) !== (next.press_text ?? null) || (prev?.photo_path ?? null) !== (next.photo_path ?? null);
+  if (!changed) return null;
+  // Пауза и для «filled»: иначе чередование «очистить → заполнить» заспамит админа.
+  const prevAt = prev?.updated_at ? Date.parse(prev.updated_at) : NaN;
+  if (Number.isFinite(prevAt) && now - prevAt < PRESS_KIT_UPDATE_NOTICE_COOLDOWN_MS) return null;
+  return isPressKitRowFilled(prev) ? "updated" : "filled";
+}

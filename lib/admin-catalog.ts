@@ -13,6 +13,8 @@ export type CatalogTrack = {
   releaseType: AdminCatalogRelease["release_type"];
   artworkUrl: string | null;
   acceptedAt: string;
+  /** Артист заполнил питчинг релиза. */
+  pitched: boolean;
 };
 
 export type CatalogArtist = {
@@ -52,7 +54,8 @@ export function flattenCatalogTracks(releases: readonly AdminCatalogRelease[]): 
         releaseTitle: r.title,
         releaseType: r.release_type,
         artworkUrl: r.artwork_url,
-        acceptedAt: r.accepted_at
+        acceptedAt: r.accepted_at,
+        pitched: r.pitched_at != null
       });
     });
   }
@@ -103,4 +106,13 @@ export function matchesCatalogTrack(track: CatalogTrack, query: string): boolean
   const q = artistKey(query);
   if (!q) return true;
   return [track.title, track.releaseTitle, track.artist, ...track.featuring].some((v) => artistKey(v).includes(q));
+}
+
+/** Релизы, где артист заполнил питчинг: последние правки сверху. */
+export function pitchedCatalogReleases(
+  releases: readonly AdminCatalogRelease[]
+): (AdminCatalogRelease & { pitched_at: string })[] {
+  return releases
+    .filter((r): r is AdminCatalogRelease & { pitched_at: string } => r.pitched_at != null)
+    .sort((a, b) => b.pitched_at.localeCompare(a.pitched_at));
 }

@@ -58,6 +58,28 @@ export async function notifyAdminTakedownRequested(params: {
   await sendToAdminWithReleaseButton(text, params.releaseId, params.appOrigin);
 }
 
+/** Артист заполнил или поправил питчинг — забрать текст и фото для редакций. */
+export async function notifyAdminPressKitSaved(params: {
+  releaseId: string;
+  kind: "filled" | "updated";
+  title: string;
+  artist: string;
+  telegramId?: string | number | null;
+  pressText: string | null;
+  hasPhoto: boolean;
+  appOrigin?: string | null;
+}): Promise<void> {
+  const who = params.telegramId ? ` (tg ${escapeHtml(String(params.telegramId))})` : "";
+  const head = params.kind === "filled" ? "📣 <b>Артист заполнил питчинг</b>" : "✏️ <b>Артист обновил питчинг</b>";
+  const body = params.pressText?.trim() ? `\n\n<i>${escapeHtml(params.pressText.trim())}</i>` : "\n\nТекста нет.";
+  const text =
+    `${head}\n\n` +
+    `«${escapeHtml(params.title || "без названия")}» — ${escapeHtml(params.artist || "—")}${who}` +
+    body +
+    `\n\nФото: ${params.hasPhoto ? "есть" : "нет"}`;
+  await sendToAdminWithReleaseButton(text, params.releaseId, params.appOrigin);
+}
+
 /** Сообщение админу с кнопкой «Открыть релиз» (мини-приложение); без адреса — просто текст. */
 async function sendToAdminWithReleaseButton(
   text: string,

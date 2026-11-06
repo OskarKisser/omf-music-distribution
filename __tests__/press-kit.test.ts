@@ -6,11 +6,17 @@ import {
   isOwnPressPhotoPath,
   isPitchingOpen,
   normalizePressText,
+  pressKitNoticeKind,
   pressTextError,
   pressTextLength
 } from "@/lib/press-kit";
 
 const resolveReleaseActor = vi.fn();
+const notifyAdminPressKitSaved = vi.fn();
+
+vi.mock("../lib/admin-notify.server", () => ({
+  notifyAdminPressKitSaved: (...a: unknown[]) => notifyAdminPressKitSaved(...a)
+}));
 const createSupabaseAdmin = vi.fn();
 
 vi.mock("../lib/api/resolve-submit-actor", () => ({
@@ -77,6 +83,7 @@ const routeCtx = { params: { releaseId: RELEASE_ID } };
 beforeEach(() => {
   resolveReleaseActor.mockReset();
   createSupabaseAdmin.mockReset();
+  notifyAdminPressKitSaved.mockReset();
 });
 
 describe("press-kit rules", () => {
@@ -99,6 +106,19 @@ describe("press-kit rules", () => {
     expect(isOwnPressPhotoPath(`../${PHOTO}`, RELEASE_ID)).toBe(false);
     expect(isOwnPressPhotoPath(PHOTO.replace(RELEASE_ID, "33333333-3333-4333-8333-333333333333"), RELEASE_ID)).toBe(false);
     expect(isOwnPressPhotoPath(`${RELEASE_ID}/x.svg`, RELEASE_ID)).toBe(false);
+  });
+
+  it("уведомление админу: первое заполнение, правка после паузы, без спама", () => {
+    const now = Date.parse("2026-11-06T12:00:00Z");
+    const filled = { press_text: "a", photo_path: null, updated_at: "2026-11-06T11:58:00Z" };
+    expect(pressKitNoticeKind(null, { press_text: "a", photo_path: null }, now)).toBe("filled");
+    expect(pressKitNoticeKind({ press_text: null, photo_path: null }, { press_text: null, photo_path: "p" }, now)).toBe("filled");
+    expect(pressKitNoticeKind(null, { press_text: null, photo_path: null }, now)).toBeNull();
+    // Очистил и сразу заполнил снова — без повторного уведомления.
+    expect(pressKitNoticeKind({ press_text: null, photo_path: null, updated_at: "2026-11-06T11:59:00Z" }, { press_text: "a", photo_path: null }, now)).toBeNull();
+    expect(pressKitNoticeKind(filled, { press_text: "b", photo_path: null }, now)).toBeNull();
+    expect(pressKitNoticeKind({ ...filled, updated_at: "2026-11-06T10:00:00Z" }, { press_text: "b", photo_path: null }, now)).toBe("updated");
+    expect(pressKitNoticeKind({ ...filled, updated_at: "2026-11-06T10:00:00Z" }, { press_text: "a", photo_path: null }, now)).toBeNull();
   });
 
   it("имя файла фото без запрещённых символов", () => {
@@ -179,6 +199,13 @@ describe("POST /api/releases/[releaseId]/press-kit", () => {
     const upsert = db.calls.find((c) => c.op === "upsert");
     expect(upsert?.payload).toMatchObject({ release_id: RELEASE_ID, press_text: "Летний трек", photo_path: PHOTO });
     expect(db.removed).toEqual([[OLD]]);
+    expect(notifyAdminPressKitSaved).toHaveBeenCalledTimes(1);
+    expect(notifyAdminPressKitSaved.mock.calls[0][0]).toMatchObject({
+      releaseId: RELEASE_ID,
+      kind: "updated",
+      pressText: "Летний трек",
+      hasPhoto: true
+    });
     const json = (await res.json()) as { kit: { photo_url: string } };
     expect(json.kit.photo_url).toBe(`https://signed/${PHOTO}`);
   });

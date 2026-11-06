@@ -3,6 +3,7 @@ import {
   flattenCatalogTracks,
   groupCatalogByArtist,
   matchesCatalogTrack,
+  pitchedCatalogReleases,
   summarizeCatalog
 } from "@/lib/admin-catalog";
 import type { AdminCatalogRelease } from "@/types/admin";
@@ -19,6 +20,7 @@ function release(p: Partial<AdminCatalogRelease> & Pick<AdminCatalogRelease, "id
     upc: null,
     accepted_at: "2026-10-10T10:00:00.000Z",
     tracks: [{ title: "Трек", explicit: false, duration: null }],
+    pitched_at: null,
     ...p
   };
 }
@@ -71,5 +73,16 @@ describe("admin catalog", () => {
     expect(matchesCatalogTrack(b0, "ep")).toBe(true);
     expect(matchesCatalogTrack(b0, "sergg")).toBe(false);
     expect(matchesCatalogTrack(b0, "  ")).toBe(true);
+  });
+});
+
+describe("pitchedCatalogReleases", () => {
+  it("только релизы с питчингом, свежие сверху", () => {
+    const rows = [
+      release({ id: "x" }),
+      release({ id: "y", pitched_at: "2026-11-01T10:00:00.000Z" }),
+      release({ id: "z", pitched_at: "2026-11-05T10:00:00.000Z" })
+    ];
+    expect(pitchedCatalogReleases(rows).map((r) => r.id)).toEqual(["z", "y"]);
   });
 });

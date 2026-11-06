@@ -14,10 +14,12 @@ import {
   flattenCatalogTracks,
   groupCatalogByArtist,
   matchesCatalogTrack,
+  pitchedCatalogReleases,
   summarizeCatalog,
   artistKey
 } from "@/lib/admin-catalog";
 import { formatAgoRu } from "@/lib/admin-release-metadata";
+import { formatPressKitUpdatedAt } from "@/lib/press-kit";
 import { errorToUserString, USER_REQUEST_TIMEOUT_MESSAGE } from "@/lib/errors";
 import { hapticMap } from "@/lib/haptic-map";
 import { pluralRu } from "@/lib/release-next-step";
@@ -26,7 +28,7 @@ import { getTelegramUserId, initTelegramWebApp } from "@/lib/telegram";
 import { cn } from "@/lib/utils";
 import { withRequestTimeout } from "@/lib/withRequestTimeout";
 
-type CatalogTab = "tracks" | "artists";
+type CatalogTab = "tracks" | "artists" | "pitching";
 
 const CATALOG_TIMEOUT_MS = 20000;
 const VISIBLE_CHUNK = 50;
@@ -77,6 +79,11 @@ export default function AdminCatalogPage() {
     const q = artistKey(query);
     return q ? allArtists.filter((a) => artistKey(a.name).includes(q)) : allArtists;
   }, [allArtists, query]);
+  const pitched = useMemo(() => {
+    const q = artistKey(query);
+    const all = pitchedCatalogReleases(releases);
+    return q ? all.filter((r) => artistKey(r.artist_name).includes(q) || artistKey(r.title).includes(q)) : all;
+  }, [releases, query]);
 
   useEffect(() => {
     setVisibleCount(VISIBLE_CHUNK);
@@ -84,7 +91,7 @@ export default function AdminCatalogPage() {
 
   const errorMessage = errorToUserString(error);
   const showSkeleton = isLoading && data === undefined;
-  const listLength = tab === "tracks" ? tracks.length : artists.length;
+  const listLength = tab === "tracks" ? tracks.length : tab === "artists" ? artists.length : pitched.length;
 
   if (adminResolved && !isAdmin) return null;
 
@@ -138,7 +145,8 @@ export default function AdminCatalogPage() {
             {(
               [
                 { key: "tracks", label: "Треки", count: tracks.length },
-                { key: "artists", label: "Артисты", count: artists.length }
+                { key: "artists", label: "Артисты", count: artists.length },
+                { key: "pitching", label: "Питчинг", count: pitched.length }
               ] as const
             ).map((t) => {
               const active = tab === t.key;
@@ -169,7 +177,7 @@ export default function AdminCatalogPage() {
             type="search"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            placeholder={tab === "tracks" ? "Трек, релиз или артист" : "Артист"}
+            placeholder={tab === "tracks" ? "Трек, релиз или артист" : tab === "artists" ? "Артист" : "Релиз или артист"}
             aria-label="Поиск по каталогу"
             className="omf-focus mb-2 h-11 w-full rounded-[12px] bg-omf-surface px-3.5 text-[16px] text-omf-ink placeholder:text-omf-faint focus:outline-none focus:ring-1 focus:ring-omf-ultra"
           />
@@ -183,7 +191,7 @@ export default function AdminCatalogPage() {
         </div>
       )}
 
-      {releases.length > 0 && listLength === 0 && (
+      {releases.length > 0 && listLength === 0 && (tab !== "pitching" || query.trim()) && (
         <p className="border-t border-omf-line pt-6 text-[14px] text-omf-graphite">Ничего не нашлось. Поменяй запрос.</p>
       )}
 
@@ -215,6 +223,14 @@ export default function AdminCatalogPage() {
                         E
                       </span>
                     ) : null}
+                    {t.pitched ? (
+                      <span
+                        className="shrink-0 rounded-[4px] bg-omf-surface-2 px-1 text-[10px] font-semibold leading-[16px] text-omf-green"
+                        title="Артист заполнил питчинг"
+                      >
+                        питчинг
+                      </span>
+                    ) : null}
                   </p>
                   <p className="mt-0.5 truncate text-[13px] text-omf-graphite">
                     {t.artist}
@@ -223,6 +239,36 @@ export default function AdminCatalogPage() {
                   <p className="mt-0.5 truncate text-[12px] text-omf-faint">
                     {t.releaseType === "single" ? "сингл" : `${TYPE_LABEL[t.releaseType].toLowerCase()} «${t.releaseTitle}»`}
                     , принят {formatAcceptedDate(t.acceptedAt)}
+                  </p>
+                </div>
+              </Link>
+            </li>
+          ))}
+        </ul>
+      ) : null}
+
+      {tab === "pitching" && pitched.length === 0 && releases.length > 0 && !query.trim() ? (
+        <p className="border-t border-omf-line pt-6 text-[14px] text-omf-graphite">
+          Пока никто не заполнил питчинг. Когда артист отправит пресс-релиз, бот пришлёт уведомление.
+        </p>
+      ) : null}
+
+      {tab === "pitching" && pitched.length > 0 ? (
+        <ul className="flex flex-col">
+          {pitched.slice(0, visibleCount).map((r) => (
+            <li key={r.id}>
+              <Link
+                href={`/admin/release/${r.id}`}
+                className="omf-focus -mx-2 flex items-center gap-3 rounded-[14px] px-2 py-2.5 transition-colors hover:bg-omf-surface active:bg-omf-surface"
+              >
+                <div className="w-14 shrink-0">
+                  <ReleaseSleeve seed={r.id} title={r.title} artist={r.artist_name} coverUrl={r.artwork_url} size="thumb" />
+                </div>
+                <div className="min-w-0 flex-1">
+                  <p className="truncate text-[16px] font-semibold leading-tight tracking-[-0.01em]">{r.title}</p>
+                  <p className="mt-0.5 truncate text-[13px] text-omf-graphite">{r.artist_name}</p>
+                  <p className="mt-0.5 truncate text-[12px] text-omf-green">
+                    Питчинг заполнен {formatPressKitUpdatedAt(r.pitched_at)}
                   </p>
                 </div>
               </Link>
