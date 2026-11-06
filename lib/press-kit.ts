@@ -102,10 +102,10 @@ export function pressKitNoticeKind(
   now: number = Date.now()
 ): "filled" | "updated" | null {
   if (!isPressKitRowFilled(next)) return null;
-  if (!isPressKitRowFilled(prev)) return "filled";
   const changed = (prev?.press_text ?? null) !== (next.press_text ?? null) || (prev?.photo_path ?? null) !== (next.photo_path ?? null);
   if (!changed) return null;
+  // Пауза и для «filled»: иначе чередование «очистить → заполнить» заспамит админа.
   const prevAt = prev?.updated_at ? Date.parse(prev.updated_at) : NaN;
   if (Number.isFinite(prevAt) && now - prevAt < PRESS_KIT_UPDATE_NOTICE_COOLDOWN_MS) return null;
-  return "updated";
+  return isPressKitRowFilled(prev) ? "updated" : "filled";
 }

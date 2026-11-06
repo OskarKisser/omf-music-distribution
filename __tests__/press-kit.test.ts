@@ -114,6 +114,8 @@ describe("press-kit rules", () => {
     expect(pressKitNoticeKind(null, { press_text: "a", photo_path: null }, now)).toBe("filled");
     expect(pressKitNoticeKind({ press_text: null, photo_path: null }, { press_text: null, photo_path: "p" }, now)).toBe("filled");
     expect(pressKitNoticeKind(null, { press_text: null, photo_path: null }, now)).toBeNull();
+    // Очистил и сразу заполнил снова — без повторного уведомления.
+    expect(pressKitNoticeKind({ press_text: null, photo_path: null, updated_at: "2026-11-06T11:59:00Z" }, { press_text: "a", photo_path: null }, now)).toBeNull();
     expect(pressKitNoticeKind(filled, { press_text: "b", photo_path: null }, now)).toBeNull();
     expect(pressKitNoticeKind({ ...filled, updated_at: "2026-11-06T10:00:00Z" }, { press_text: "b", photo_path: null }, now)).toBe("updated");
     expect(pressKitNoticeKind({ ...filled, updated_at: "2026-11-06T10:00:00Z" }, { press_text: "a", photo_path: null }, now)).toBeNull();
