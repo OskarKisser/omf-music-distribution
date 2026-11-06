@@ -9,7 +9,7 @@ import { AdminTabs } from "@/components/admin/AdminTabs";
 import { ReleaseSleeve } from "@/components/ReleaseSleeve";
 import { AdminModerationQueueSkeleton } from "@/components/ui/LibrarySkeleton";
 import { fetchAdminCatalog } from "@/features/admin/catalog";
-import { isAdminUi, isAdminUiByWebSession } from "@/lib/admin";
+import { isAdminUi, isAdminUiByWebSession, peekWebAdminUi } from "@/lib/admin";
 import {
   flattenCatalogTracks,
   groupCatalogByArtist,
@@ -42,8 +42,8 @@ function formatAcceptedDate(iso: string): string {
 export default function AdminCatalogPage() {
   const router = useRouter();
   const [userId, setUserId] = useState<number | null>(null);
-  const [isAdmin, setIsAdmin] = useState(false);
-  const [adminResolved, setAdminResolved] = useState(false);
+  const [isAdmin, setIsAdmin] = useState(peekWebAdminUi);
+  const [adminResolved, setAdminResolved] = useState(peekWebAdminUi);
   const [tab, setTab] = useState<CatalogTab>("tracks");
   const [query, setQuery] = useState("");
   const [visibleCount, setVisibleCount] = useState(VISIBLE_CHUNK);
@@ -51,7 +51,7 @@ export default function AdminCatalogPage() {
   useEffect(() => {
     initTelegramWebApp();
     setUserId(getTelegramUserId());
-    setIsAdmin(isAdminUi());
+    setIsAdmin((prev) => prev || isAdminUi());
     void (async () => {
       const webAdmin = await isAdminUiByWebSession();
       setIsAdmin((prev) => prev || webAdmin);

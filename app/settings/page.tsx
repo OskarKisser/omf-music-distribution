@@ -1,10 +1,15 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import useSWR from "swr";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { ArrowLeft, ChevronRight } from "lucide-react";
+import { isAdminUi, isAdminUiByWebSession, peekWebAdminUi } from "@/lib/admin";
+import { fetchAdminModerationQueue } from "@/features/admin/moderation-queue";
+import { fetchAdminAwaitingLink } from "@/features/admin/awaiting-link";
+import { openTelegramChat } from "@/lib/open-smart-link";
+import { SWR_LIST_OPTIONS } from "@/lib/swr-config";
 import { getTelegramApiAuthHeaders, getTelegramUsername } from "@/lib/telegram";
 import { useReleases } from "@/lib/hooks/useReleases";
 import { pickHeroArtistName } from "@/lib/artist-name";
@@ -96,6 +101,45 @@ const NOTIFY_ROWS = [
 
 type NotifyKey = (typeof NOTIFY_ROWS)[number]["key"];
 
+/** Бот, в который приходят все сообщения. */
+const BOT_USERNAME = process.env.NEXT_PUBLIC_TELEGRAM_BOT_USERNAME?.trim() || "OMF_DISTRIBUTION_BOT";
+
+/** Группа строк на подложке: как в системных настройках, без пустых полос между пунктами. */
+function Group({ children }: { children: React.ReactNode }) {
+  return <div className="overflow-hidden rounded-[16px] bg-omf-surface px-4 [&>*:last-child]:border-b-0">{children}</div>;
+}
+
+const rowClass = "flex min-h-[52px] w-full items-center gap-3 border-b border-omf-line py-3 text-left text-[15px]";
+
+function SectionTitle({ id, children }: { id: string; children: React.ReactNode }) {
+  return (
+    <h2 id={id} className="mb-2 mt-7 px-1 text-[13px] font-medium text-omf-graphite">
+      {children}
+    </h2>
+  );
+}
+
+/** Для админа — вход в работу в один тап и что там ждёт. Счётчики из того же кэша, что у модерации. */
+function AdminShortcut() {
+  const { data: queue } = useSWR(["admin-moderation-queue"] as const, () => fetchAdminModerationQueue(), SWR_LIST_OPTIONS);
+  const { data: awaiting } = useSWR(["admin-awaiting-link"] as const, fetchAdminAwaitingLink, SWR_LIST_OPTIONS);
+  const parts: string[] = [];
+  if (queue) parts.push(queue.length > 0 ? `${queue.length} ${pluralRu(queue.length, ["ждёт", "ждут", "ждут"])} решения` : "очередь пуста");
+  if (awaiting && awaiting.length > 0) parts.push(`${awaiting.length} ${pluralRu(awaiting.length, ["ждёт", "ждут", "ждут"])} ссылку`);
+  return (
+    <Link
+      href="/admin"
+      className="omf-focus mt-6 flex items-center gap-3 rounded-[16px] bg-omf-ultra px-4 py-3.5 text-white transition-transform active:scale-[0.99]"
+    >
+      <span className="min-w-0 flex-1">
+        <span className="block text-[16px] font-semibold tracking-[-0.01em]">Модерация</span>
+        <span className="mt-0.5 block truncate text-[13px] text-white/75">{parts.length > 0 ? parts.join(", ") : "Открыть"}</span>
+      </span>
+      <ChevronRight className="h-5 w-5 shrink-0" aria-hidden />
+    </Link>
+  );
+}
+
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
 export default function SettingsPage() {
@@ -115,6 +159,12 @@ export default function SettingsPage() {
   });
 
   const [savingKey, setSavingKey] = useState<NotifyKey | null>(null);
+  const [isAdmin, setIsAdmin] = useState(peekWebAdminUi);
+  useEffect(() => {
+    setIsAdmin((prev) => prev || isAdminUi());
+    void isAdminUiByWebSession().then((v) => v && setIsAdmin(true));
+  }, []);
+  const isWeb = !isTelegramContext;
 
   // ─── Handlers ──────────────────────────────────────────────────────────────
 
@@ -161,9 +211,15 @@ export default function SettingsPage() {
         </span>
         <div className="min-w-0">
           <h1 className="truncate text-[28px] font-bold leading-none tracking-[-0.045em]">{artistName}</h1>
-          {accountLine ? <p className="mt-1.5 truncate text-[13px] text-omf-graphite">{accountLine}</p> : null}
+          {accountLine || isAdmin ? (
+            <p className="mt-1.5 truncate text-[13px] text-omf-graphite">
+              {[accountLine, isAdmin ? "админ" : null].filter(Boolean).join(", ")}
+            </p>
+          ) : null}
         </div>
       </header>
+
+      {isAdmin ? <AdminShortcut /> : null}
 
       {total > 0 ? (
         <dl className="mt-6 grid grid-cols-3 rounded-[18px] bg-omf-surface px-4 py-3.5">
@@ -183,34 +239,63 @@ export default function SettingsPage() {
         </dl>
       ) : null}
 
-      <section className="mt-7" aria-labelledby="notify-title">
-        <h2 id="notify-title" className="text-[14px] font-semibold text-omf-graphite">
-          Уведомления в Telegram
-        </h2>
-        {!isTelegramContext ? (
-          <p className="border-b border-omf-line py-4 text-[14px] text-omf-graphite">
-            В веб-версии новое видно по метке «Новое» в релизах. Сообщения приходят, когда входишь через Telegram.
-          </p>
+      {isWeb && webUser ? (
+        <section aria-labelledby="account-title">
+          <SectionTitle id="account-title">Аккаунт</SectionTitle>
+          <Group>
+            <div className={rowClass}>
+              <span className="flex-1 text-omf-ink">Почта</span>
+              <span className="min-w-0 max-w-[60%] truncate text-[14px] text-omf-graphite">{webUser.email}</span>
+            </div>
+            <Link href="/auth/update-password" className={`omf-focus ${rowClass}`}>
+              <span className="flex-1 text-omf-ink">Пароль</span>
+              <span className="text-[14px] text-omf-graphite">Сменить</span>
+              <ChevronRight className="h-4 w-4 text-omf-faint" aria-hidden />
+            </Link>
+          </Group>
+        </section>
+      ) : null}
+
+      <section aria-labelledby="notify-title">
+        <SectionTitle id="notify-title">Уведомления в Telegram</SectionTitle>
+        {isWeb ? (
+          <Group>
+            <div className={rowClass}>
+              <span className="min-w-0 flex-1">
+                <span className="block text-omf-ink">Приходят в бот</span>
+                <span className="mt-0.5 block text-[13px] text-omf-graphite">В вебе новое отмечено в релизах</span>
+              </span>
+              <button
+                type="button"
+                onClick={() => openTelegramChat(BOT_USERNAME)}
+                className="omf-focus shrink-0 rounded-full py-1 text-[14px] text-omf-ultra-text hover:text-omf-ink"
+              >
+                Открыть бота
+              </button>
+            </div>
+          </Group>
         ) : isLoading ? (
-          <div aria-busy="true">
+          <Group>
             {NOTIFY_ROWS.map((r) => (
-              <div key={r.key} className="flex items-center justify-between border-b border-omf-line py-4">
-                <div className="h-4 w-44 animate-pulse rounded bg-omf-surface" />
-                <div className="h-8 w-[52px] animate-pulse rounded-full bg-omf-surface" />
+              <div key={r.key} aria-busy="true" className="flex items-center justify-between border-b border-omf-line py-4">
+                <div className="h-4 w-44 animate-pulse rounded bg-omf-surface-2" />
+                <div className="h-8 w-[52px] animate-pulse rounded-full bg-omf-surface-2" />
               </div>
             ))}
-          </div>
+          </Group>
         ) : (
-          NOTIFY_ROWS.map((r) => (
-            <ToggleRow
-              key={r.key}
-              label={r.label}
-              hint={r.hint}
-              checked={prefs?.[r.key] ?? true}
-              onChange={(v) => void handleToggle(r.key, v)}
-              disabled={savingKey === r.key}
-            />
-          ))
+          <Group>
+            {NOTIFY_ROWS.map((r) => (
+              <ToggleRow
+                key={r.key}
+                label={r.label}
+                hint={r.hint}
+                checked={prefs?.[r.key] ?? true}
+                onChange={(v) => void handleToggle(r.key, v)}
+                disabled={savingKey === r.key}
+              />
+            ))}
+          </Group>
         )}
       </section>
 
@@ -220,20 +305,16 @@ export default function SettingsPage() {
         </div>
       ) : null}
 
-      <section className="mt-7" aria-labelledby="more-title">
-        <h2 id="more-title" className="text-[14px] font-semibold text-omf-graphite">
-          Ещё
-        </h2>
-        <Link
-          href="/requirements"
-          className="omf-focus flex items-center justify-between gap-4 border-b border-omf-line py-4 text-[15px] text-omf-ink"
-        >
-          Помощь и правила
-          <ChevronRight className="h-4 w-4 text-omf-faint" aria-hidden />
-        </Link>
+      <section aria-labelledby="more-title">
+        <SectionTitle id="more-title">Ещё</SectionTitle>
+        <Group>
+          <Link href="/requirements" className={`omf-focus ${rowClass}`}>
+            <span className="flex-1 text-omf-ink">Помощь и правила</span>
+            <ChevronRight className="h-4 w-4 text-omf-faint" aria-hidden />
+          </Link>
+          <WebLogoutButton />
+        </Group>
       </section>
-
-      <WebLogoutButton />
     </div>
   );
 }
@@ -265,7 +346,7 @@ function WebLogoutButton() {
       type="button"
       onClick={handleLogout}
       disabled={isLoggingOut}
-      className="omf-focus mt-6 w-full rounded-control py-3 text-[15px] text-omf-red disabled:opacity-50"
+      className={`omf-focus ${rowClass} text-omf-red disabled:opacity-50`}
     >
       {isLoggingOut ? "Выходим…" : "Выйти из аккаунта"}
     </button>

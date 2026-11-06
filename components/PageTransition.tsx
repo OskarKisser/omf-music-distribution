@@ -1,38 +1,23 @@
 "use client";
 
 import { usePathname } from "next/navigation";
-import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 
 /**
- * Глобальный fade между разделами (библиотека, релиз, админ…).
- * Маршруты `/create/*` без глобального fade — слайд шагов в `CreateShell` / `CreateStepTransition`.
- * `motion.div` с `initial={false}` — не начинать кадр с opacity 0 (Safari мог показывать «пустой» экран).
+ * Переход между разделами: новый экран сразу проявляется и чуть подъезжает (200 мс), без ожидания,
+ * пока погаснет старый. CSS-анимация, а не framer: кадр с opacity 0 не может «застрять» в Safari,
+ * при `prefers-reduced-motion` движения нет (см. `.omf-page-enter` в globals.css).
+ * `/create/*` — без перехода: там свой слайд шагов в `CreateShell`.
  */
 export function PageTransition({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
-  const prefersReducedMotion = useReducedMotion();
-  const isCreateWizard = pathname.startsWith("/create");
-
-  const transition = prefersReducedMotion
-    ? { duration: 0 }
-    : isCreateWizard
-      ? { duration: 0 }
-      : { duration: 0.3, ease: [0.22, 1, 0.36, 1] as const };
-
-  const instant = prefersReducedMotion || isCreateWizard;
+  const animate = !pathname.startsWith("/create");
 
   return (
-    <AnimatePresence mode="wait" initial={false}>
-      <motion.div
-        key={pathname}
-        className="relative min-h-app w-full min-w-0 overflow-x-hidden will-change-[opacity]"
-        initial={false}
-        animate={{ opacity: 1 }}
-        exit={{ opacity: instant ? 1 : 0 }}
-        transition={transition}
-      >
-        {children}
-      </motion.div>
-    </AnimatePresence>
+    <div
+      key={pathname}
+      className={`relative min-h-app w-full min-w-0 overflow-x-hidden${animate ? " omf-page-enter" : ""}`}
+    >
+      {children}
+    </div>
   );
 }

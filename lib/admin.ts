@@ -80,20 +80,38 @@ export function isAdminUi(): boolean {
   return telegramIdsEqual(uid, adminId);
 }
 
+/** Роль веб-пользователя на сеанс вкладки: админские экраны не ждут запроса к базе при каждом переходе. */
+let webAdminKnown: { uid: string; value: boolean } | null = null;
+
+/** Уже знаем, что веб-пользователь — админ: экран можно показывать сразу, проверка догонит. */
+export function peekWebAdminUi(): boolean {
+  return typeof window !== "undefined" && webAdminKnown?.value === true;
+}
+
+export function forgetWebAdmin(): void {
+  webAdminKnown = null;
+}
+
 export async function isAdminUiByWebSession(): Promise<boolean> {
   try {
     const supabase = createSupabaseBrowser();
     const {
       data: { session }
     } = await supabase.auth.getSession();
-    if (!session?.user?.id) return false;
+    if (!session?.user?.id) {
+      webAdminKnown = null;
+      return false;
+    }
+    if (webAdminKnown?.uid === session.user.id) return webAdminKnown.value;
     const { data, error } = await supabase
       .from("users")
       .select("*")
       .eq("id", session.user.id)
       .maybeSingle();
     if (error || !data) return false;
-    return String((data as { role?: string | null }).role ?? "").trim().toLowerCase() === "admin";
+    const value = String((data as { role?: string | null }).role ?? "").trim().toLowerCase() === "admin";
+    webAdminKnown = { uid: session.user.id, value };
+    return value;
   } catch {
     return false;
   }

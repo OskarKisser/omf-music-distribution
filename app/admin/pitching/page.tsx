@@ -9,7 +9,7 @@ import { ReleaseSleeve } from "@/components/ReleaseSleeve";
 import { AdminTabs } from "@/components/admin/AdminTabs";
 import { AdminModerationQueueSkeleton } from "@/components/ui/LibrarySkeleton";
 import { fetchAdminCatalog } from "@/features/admin/catalog";
-import { isAdminUi, isAdminUiByWebSession } from "@/lib/admin";
+import { isAdminUi, isAdminUiByWebSession, peekWebAdminUi } from "@/lib/admin";
 import { artistKey, localIsoDay, splitPitching } from "@/lib/admin-catalog";
 import { adminReleaseHref } from "@/lib/admin-nav";
 import { formatReleaseDateDayMonthRu } from "@/lib/admin-release-publish";
@@ -71,14 +71,14 @@ function PitchRow({ r, today, upcoming }: { r: AdminCatalogRelease & { pitched_a
 export default function AdminPitchingPage() {
   const router = useRouter();
   const [userId, setUserId] = useState<number | null>(null);
-  const [isAdmin, setIsAdmin] = useState(false);
-  const [adminResolved, setAdminResolved] = useState(false);
+  const [isAdmin, setIsAdmin] = useState(peekWebAdminUi);
+  const [adminResolved, setAdminResolved] = useState(peekWebAdminUi);
   const [query, setQuery] = useState("");
 
   useEffect(() => {
     initTelegramWebApp();
     setUserId(getTelegramUserId());
-    setIsAdmin(isAdminUi());
+    setIsAdmin((prev) => prev || isAdminUi());
     void (async () => {
       const webAdmin = await isAdminUiByWebSession();
       setIsAdmin((prev) => prev || webAdmin);
