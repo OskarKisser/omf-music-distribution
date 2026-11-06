@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { notifyAdminError } from "@/lib/admin-notify.server";
 import { createClient } from "@supabase/supabase-js";
+import { supabaseNoStoreFetch } from "@/lib/supabase-no-store-fetch";
 
 const bodySchema = z.object({
   userId: z.number().int().nullable().optional(),
@@ -37,7 +38,8 @@ export async function POST(req: Request) {
   if (url && serviceKey) {
     try {
       const admin = createClient(url, serviceKey, {
-        auth: { persistSession: false, autoRefreshToken: false }
+        auth: { persistSession: false, autoRefreshToken: false },
+        global: { fetch: supabaseNoStoreFetch }
       });
       const fullRow = {
         user_id: userId ?? null,
