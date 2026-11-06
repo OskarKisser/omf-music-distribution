@@ -6,6 +6,7 @@ import { getExpectedAdminTelegramId, telegramIdsEqual } from "@/lib/admin";
 import { createSupabaseAdmin } from "@/lib/supabase-admin";
 import { verifyAdminDownloadUrl } from "@/lib/admin-download-token";
 import { createClient } from "@supabase/supabase-js";
+import { supabaseNoStoreFetch } from "@/lib/supabase-no-store-fetch";
 
 export type AdminGuardResult =
   | { ok: true; supabase: SupabaseClient }
@@ -24,7 +25,8 @@ async function isWebAdminRequest(request: NextRequest, supabase: SupabaseClient)
   if (!url || !anon) return false;
 
   const anonClient = createClient(url, anon, {
-    auth: { persistSession: false, autoRefreshToken: false }
+    auth: { persistSession: false, autoRefreshToken: false },
+    global: { fetch: supabaseNoStoreFetch }
   });
   const {
     data: { user },
