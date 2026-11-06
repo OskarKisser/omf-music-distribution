@@ -31,6 +31,8 @@ export const metadata: Metadata = {
   metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000"),
   title: "omf mini app",
   description: "Выпуск музыки на стриминги прямо из Telegram",
+  /** Экран «Домой»: иконка и запуск без адресной строки. У /admin свой манифест (app/admin/layout.tsx). */
+  manifest: "/manifest.webmanifest",
   appleWebApp: {
     capable: true,
     /** Opaque bar — без «затемняющих» полос как у black-translucent под вырезом / снизу */
