@@ -2,7 +2,14 @@ import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import { z } from "zod";
 import { jsonError, loadOwnedRelease, readJsonBody } from "@/lib/api/release-owner-route";
-import { isOwnPressPhotoPath, isPitchingOpen, normalizePressText, pressTextError } from "@/lib/press-kit";
+import { notifyAdminPressKitSaved } from "@/lib/admin-notify.server";
+import {
+  isOwnPressPhotoPath,
+  isPitchingOpen,
+  normalizePressText,
+  pressKitNoticeKind,
+  pressTextError
+} from "@/lib/press-kit";
 import { loadPressKit, loadPressKitRows, pressPhotoExists, removePressPhotos } from "@/lib/server/press-kit";
 
 export const dynamic = "force-dynamic";
@@ -19,7 +26,7 @@ const bodySchema = z
   })
   .refine((b) => b.pressText !== undefined || b.photoPath !== undefined, "Нечего сохранять.");
 
-const OWNER_COLUMNS = "id, user_id, telegram_id, user_uuid, status, smart_link";
+const OWNER_COLUMNS = "id, user_id, telegram_id, user_uuid, status, smart_link, title, track_name, artist_name";
 
 async function loadOpenRelease(request: NextRequest, releaseIdRaw: string) {
   const parsed = paramsSchema.safeParse({ releaseId: releaseIdRaw });
@@ -33,7 +40,7 @@ async function loadOpenRelease(request: NextRequest, releaseIdRaw: string) {
       response: jsonError(409, "Питчинг откроется, когда релиз выпустят и появится ссылка.")
     };
   }
-  return { ok: true as const, releaseId: parsed.data.releaseId, admin: owned.value.admin };
+  return { ok: true as const, releaseId: parsed.data.releaseId, admin: owned.value.admin, row };
 }
 
 /** Пресс-релиз владельца: текст, превью фото, дата обновления. */
@@ -48,7 +55,7 @@ async function handleGet(request: NextRequest, ctx: { params: { releaseId: strin
 async function handlePost(request: NextRequest, ctx: { params: { releaseId: string } }): Promise<Response> {
   const open = await loadOpenRelease(request, ctx.params.releaseId);
   if (!open.ok) return open.response;
-  const { admin, releaseId } = open;
+  const { admin, releaseId, row } = open;
 
   const body = await readJsonBody(request);
   if (!body.ok) return body.response;
@@ -74,9 +81,10 @@ async function handlePost(request: NextRequest, ctx: { params: { releaseId: stri
   }
 
   const [existing] = await loadPressKitRows(admin, [releaseId]);
+  const savedAt = new Date();
   const { error } = await admin
     .from("release_press_kits")
-    .upsert({ release_id: releaseId, ...patch, updated_at: new Date().toISOString() }, { onConflict: "release_id" });
+    .upsert({ release_id: releaseId, ...patch, updated_at: savedAt.toISOString() }, { onConflict: "release_id" });
   if (error) {
     console.error("[releases/press-kit POST] upsert:", error.message);
     return jsonError(500, "Не удалось сохранить питчинг.");
@@ -85,6 +93,24 @@ async function handlePost(request: NextRequest, ctx: { params: { releaseId: stri
   // Фото заменили или убрали — старый файл больше не нужен.
   if (patch.photo_path !== undefined && existing?.photo_path !== patch.photo_path) {
     await removePressPhotos(admin, releaseId, patch.photo_path);
+  }
+
+  const next = {
+    press_text: patch.press_text !== undefined ? patch.press_text : (existing?.press_text ?? null),
+    photo_path: patch.photo_path !== undefined ? patch.photo_path : (existing?.photo_path ?? null)
+  };
+  const noticeKind = pressKitNoticeKind(existing, next, savedAt.getTime());
+  if (noticeKind) {
+    await notifyAdminPressKitSaved({
+      releaseId,
+      kind: noticeKind,
+      title: String(row.title ?? "").trim() || String(row.track_name ?? "").trim(),
+      artist: String(row.artist_name ?? "").trim(),
+      telegramId: row.telegram_id as string | number | null,
+      pressText: next.press_text,
+      hasPhoto: Boolean(next.photo_path),
+      appOrigin: request.nextUrl.origin
+    });
   }
 
   const kit = await loadPressKit(admin, releaseId);

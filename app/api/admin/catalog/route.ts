@@ -4,6 +4,7 @@ import { requireAdminSupabaseClient } from "@/lib/admin-release-api-guard";
 import { getTelegramAuthContextFromRequest } from "@/lib/api/with-telegram-auth";
 import { featuringNamesFromCollaboratorsJson } from "@/lib/collaborators";
 import { loadAcceptedAt } from "@/lib/server/release-accepted-at";
+import type { PressKitRow } from "@/lib/server/press-kit";
 import type { AdminCatalogRelease } from "@/types/admin";
 
 export const dynamic = "force-dynamic";
@@ -71,6 +72,15 @@ async function handleCatalog(request: NextRequest): Promise<Response> {
     }
   }
   const acceptedAt = await loadAcceptedAt(guard.supabase, ids);
+  // Питчингов не больше, чем релизов: берём все строки, без длинного `in (...)` на тысячи id.
+  const pitchedAt = new Map<string, string>();
+  const { data: kits, error: kitErr } = await guard.supabase
+    .from("release_press_kits")
+    .select("release_id, press_text, photo_path, updated_at");
+  if (kitErr) console.error("[admin/catalog] press kits:", kitErr.message);
+  for (const kit of (kits ?? []) as PressKitRow[]) {
+    if ((kit.press_text?.trim() || kit.photo_path) && kit.updated_at) pitchedAt.set(kit.release_id, kit.updated_at);
+  }
 
   const rows: AdminCatalogRelease[] = releases.map((r) => {
     const title = r.title?.trim() || r.track_name?.trim() || "Без названия";
@@ -88,7 +98,8 @@ async function handleCatalog(request: NextRequest): Promise<Response> {
       smart_link: r.smart_link?.trim() || null,
       upc: r.upc?.trim() || null,
       accepted_at: acceptedAt.get(r.id) ?? r.created_at,
-      tracks: tracks.length > 0 ? tracks : [{ title, explicit: false, duration: null }]
+      tracks: tracks.length > 0 ? tracks : [{ title, explicit: false, duration: null }],
+      pitched_at: pitchedAt.get(r.id) ?? null
     };
   });
   rows.sort((a, b) => b.accepted_at.localeCompare(a.accepted_at));
