@@ -26,6 +26,7 @@ import type { ReleaseRecord, ReleaseTrackRow } from "@/repositories/releases.rep
 import { hapticMap } from "@/lib/haptic-map";
 import { getTelegramUserId, initTelegramWebApp, triggerHaptic } from "@/lib/telegram";
 import { errorToUserString, USER_REQUEST_TIMEOUT_MESSAGE } from "@/lib/errors";
+import { useRefreshOnReturn } from "@/lib/hooks/useRefreshOnReturn";
 import { SWR_LIST_OPTIONS } from "@/lib/swr-config";
 import { withRequestTimeout } from "@/lib/withRequestTimeout";
 import { useIsTelegramMiniApp } from "@/lib/hooks/useIsTelegramMiniApp";
@@ -168,6 +169,14 @@ function AdminPageInner() {
       mutateAwaiting(undefined, { revalidate: true })
     ]);
   }, [mutate, mutateStats, mutateAwaiting]);
+
+  /** Вернулись в свёрнутый мини-апп — подтянуть очередь заново, а не показывать старую. */
+  useRefreshOnReturn(() => {
+    if (!isAdmin) return;
+    void mutate();
+    void mutateStats();
+    void mutateAwaiting();
+  });
 
   useEffect(() => {
     setSelectedReleaseIds((prev) => {

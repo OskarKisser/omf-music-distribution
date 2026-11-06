@@ -34,6 +34,7 @@ import {
 } from "@/lib/admin-release-metadata";
 import { useAdminHotkeys } from "@/lib/hooks/useAdminHotkeys";
 import { useIsTelegramMiniApp } from "@/lib/hooks/useIsTelegramMiniApp";
+import { useRefreshOnReturn } from "@/lib/hooks/useRefreshOnReturn";
 import { SWR_LIST_OPTIONS } from "@/lib/swr-config";
 import { cn } from "@/lib/utils";
 import { hapticMap } from "@/lib/haptic-map";
@@ -154,6 +155,9 @@ export default function AdminReleaseDetailPage() {
     () => fetchAdminModerationQueue(),
     SWR_LIST_OPTIONS
   );
+  useRefreshOnReturn(() => {
+    if (isAdmin) void mutateQueue();
+  });
   const queueIds = useMemo(() => (queue ?? []).map((row) => row.release.id), [queue]);
   const remainingAfterThis = queueIds.filter((id) => id !== releaseId).length;
 
