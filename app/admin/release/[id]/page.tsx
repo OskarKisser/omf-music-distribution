@@ -42,7 +42,7 @@ import { SWR_LIST_OPTIONS } from "@/lib/swr-config";
 import { cn } from "@/lib/utils";
 import { hapticMap } from "@/lib/haptic-map";
 import { openTelegramChat } from "@/lib/open-smart-link";
-import { isAdminUi, isAdminUiByWebSession } from "@/lib/admin";
+import { isAdminUi, isAdminUiByWebSession, peekWebAdminUi } from "@/lib/admin";
 import { normalizeReleaseStatus } from "@/lib/release-status";
 import type { ReleaseRecord, ReleaseTrackRow } from "@/repositories/releases.repo";
 import { getReleaseDisplayTitle } from "@/repositories/releases/types";
@@ -112,7 +112,7 @@ export default function AdminReleaseDetailPage() {
   /** Панель решения — в портале: у обёртки страницы transform, `fixed` внутри неё уезжает под навигацию. */
   const [portalReady, setPortalReady] = useState(false);
 
-  const [isAdmin, setIsAdmin] = useState(false);
+  const [isAdmin, setIsAdmin] = useState(peekWebAdminUi);
   /** Откуда открыли: «назад» и переход после ссылки ведут туда же. Из URL, без Suspense для useSearchParams. */
   const [from, setFrom] = useState<AdminReleaseFrom>("queue");
 
@@ -121,7 +121,7 @@ export default function AdminReleaseDetailPage() {
     setPortalReady(true);
     initTelegramWebApp();
     setUserId(getTelegramUserId());
-    setIsAdmin(isAdminUi());
+    setIsAdmin((prev) => prev || isAdminUi());
     void (async () => {
       const webAdmin = await isAdminUiByWebSession();
       if (webAdmin) setIsAdmin(true);

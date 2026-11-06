@@ -8,7 +8,7 @@ import { PullRefreshBrand } from "@/components/PullRefreshBrand";
 import { AdminTabs } from "@/components/admin/AdminTabs";
 import { AdminModerationQueueSkeleton } from "@/components/ui/LibrarySkeleton";
 import { fetchAdminModerationHistory } from "@/features/admin/moderation-history";
-import { isAdminUi, isAdminUiByWebSession } from "@/lib/admin";
+import { isAdminUi, isAdminUiByWebSession, peekWebAdminUi } from "@/lib/admin";
 import { debugInit } from "@/lib/debug";
 import type { ReleaseRecord, ReleaseTrackRow } from "@/repositories/releases.repo";
 import { getTelegramUserId, initTelegramWebApp } from "@/lib/telegram";
@@ -39,8 +39,8 @@ const NEAR_BOTTOM_OFFSET_PX = 900;
 export default function AdminModerationHistoryPage() {
   const router = useRouter();
   const [userId, setUserId] = useState<number | null>(null);
-  const [isAdmin, setIsAdmin] = useState(false);
-  const [adminResolved, setAdminResolved] = useState(false);
+  const [isAdmin, setIsAdmin] = useState(peekWebAdminUi);
+  const [adminResolved, setAdminResolved] = useState(peekWebAdminUi);
   const [visibleRowsCount, setVisibleRowsCount] = useState(INITIAL_VISIBLE_ROWS);
   const [statusFilter, setStatusFilter] = useState<HistoryStatusFilter>("all");
   const [query, setQuery] = useState("");
@@ -49,7 +49,7 @@ export default function AdminModerationHistoryPage() {
     debugInit("admin/history", "init start");
     initTelegramWebApp();
     setUserId(getTelegramUserId());
-    setIsAdmin(isAdminUi());
+    setIsAdmin((prev) => prev || isAdminUi());
     void (async () => {
       const webAdmin = await isAdminUiByWebSession();
       setIsAdmin((prev) => prev || webAdmin);

@@ -18,7 +18,7 @@ import { PullRefreshBrand } from "@/components/PullRefreshBrand";
 import { AdminModerationQueueSkeleton } from "@/components/ui/LibrarySkeleton";
 import { approveRelease, publishReleaseWithSmartLink, rejectRelease } from "@/features/admin/actions";
 import { fetchAdminModerationQueue } from "@/features/admin/moderation-queue";
-import { isAdminUi, isAdminUiByWebSession } from "@/lib/admin";
+import { isAdminUi, isAdminUiByWebSession, peekWebAdminUi } from "@/lib/admin";
 import { isPaymentConfirmed } from "@/lib/release-payment";
 import { debugInit } from "@/lib/debug";
 import { fetchAdminStats } from "@/lib/fetch-admin-stats";
@@ -51,8 +51,8 @@ function AdminPageInner() {
   const [rejectModalReleaseId, setRejectModalReleaseId] = useState<string | null>(null);
   /** «Принять» для релиза из очереди или «Добавить ссылку» для принятого. */
   const [approveModal, setApproveModal] = useState<{ id: string; mode: ApproveModalMode } | null>(null);
-  const [isAdmin, setIsAdmin] = useState(false);
-  const [adminResolved, setAdminResolved] = useState(false);
+  const [isAdmin, setIsAdmin] = useState(peekWebAdminUi);
+  const [adminResolved, setAdminResolved] = useState(peekWebAdminUi);
   const [activeFilter, setActiveFilter] = useState<QueueFilterKey>("all");
   const [searchQuery, setSearchQuery] = useState("");
   /** Режим выбора: по кнопке «Выбрать», тап по карточке отмечает её, решение — в нижней панели. */
@@ -72,7 +72,7 @@ function AdminPageInner() {
     debugInit("admin", "init start");
     initTelegramWebApp();
     setUserId(getTelegramUserId());
-    setIsAdmin(isAdminUi());
+    setIsAdmin((prev) => prev || isAdminUi());
     void (async () => {
       const webAdmin = await isAdminUiByWebSession();
       setIsAdmin((prev) => prev || webAdmin);
