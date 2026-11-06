@@ -4,6 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { ReleaseSleeve } from "@/components/ReleaseSleeve";
 import { hapticMap } from "@/lib/haptic-map";
+import { adminReleaseHref } from "@/lib/admin-nav";
 import { formatAgoRu } from "@/lib/admin-release-metadata";
 import { DSP_REVIEW_DAYS_TEXT } from "@/lib/release-next-step";
 import { cn } from "@/lib/utils";
@@ -25,7 +26,11 @@ export function AdminAwaitingLinkList({
 }) {
   const [expanded, setExpanded] = useState(false);
   if (rows.length === 0) return null;
-  const visible = expanded || asTab ? rows : rows.slice(0, COLLAPSED_COUNT);
+  // Во вкладке — по ближайшей дате выхода: ссылка нужнее тем, кто выходит раньше. Без даты — в конце.
+  const ordered = asTab
+    ? [...rows].sort((a, b) => (a.release_date ?? "9999").localeCompare(b.release_date ?? "9999"))
+    : rows;
+  const visible = expanded || asTab ? ordered : ordered.slice(0, COLLAPSED_COUNT);
 
   return (
     <section className={asTab ? undefined : "mt-10"} aria-label="Ждут ссылку">
@@ -34,12 +39,13 @@ export function AdminAwaitingLinkList({
       )}
       <p className={cn("text-[13px] leading-snug text-omf-graphite", asTab ? "" : "mt-0.5")}>
         Когда площадки выдадут UPC, сделай ссылку BandLink и добавь её сюда. Обычно {DSP_REVIEW_DAYS_TEXT}.
+        {asTab ? " Ближайшие релизы сверху." : ""}
       </p>
       <ul className="mt-2 flex flex-col">
         {visible.map((r) => (
           <li key={r.id} className="flex items-center gap-3 border-b border-omf-line py-3">
             <Link
-              href={`/admin/release/${r.id}`}
+              href={adminReleaseHref(r.id, asTab ? "links" : "queue")}
               className="omf-focus flex min-w-0 flex-1 items-center gap-3 rounded-[10px]"
             >
               <div className="w-14 shrink-0">
@@ -61,9 +67,9 @@ export function AdminAwaitingLinkList({
                 hapticMap.impactLight();
                 onAddLink(r.id);
               }}
-              className="omf-btn-primary h-9 min-h-0 shrink-0 rounded-[10px] px-3.5 text-[13px] font-semibold"
+              className="omf-btn-secondary h-9 min-h-0 shrink-0 rounded-[10px] px-3.5 text-[13px] font-semibold"
             >
-              Ссылка
+              Добавить
             </button>
           </li>
         ))}

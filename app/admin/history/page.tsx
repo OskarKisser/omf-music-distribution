@@ -17,6 +17,7 @@ import { SWR_LIST_OPTIONS } from "@/lib/swr-config";
 import { withRequestTimeout } from "@/lib/withRequestTimeout";
 import { countHistoryByStatus, filterHistory, type HistoryStatusFilter } from "@/lib/admin-history-filter";
 import { hapticMap } from "@/lib/haptic-map";
+import { adminReleaseHref } from "@/lib/admin-nav";
 import { cn } from "@/lib/utils";
 
 type HistoryRow = {
@@ -221,7 +222,7 @@ export default function AdminModerationHistoryPage() {
               onOpenReject={() => {}}
               showModerationActions={false}
               showAudioPreview={false}
-              detailHref={`/admin/release/${row.release.id}`}
+              detailHref={adminReleaseHref(row.release.id, "history")}
               artworkPriority={index < 4}
             />
           ))}

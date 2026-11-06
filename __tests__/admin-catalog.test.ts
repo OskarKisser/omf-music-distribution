@@ -4,6 +4,7 @@ import {
   groupCatalogByArtist,
   matchesCatalogTrack,
   pitchedCatalogReleases,
+  splitPitching,
   summarizeCatalog
 } from "@/lib/admin-catalog";
 import type { AdminCatalogRelease } from "@/types/admin";
@@ -20,6 +21,7 @@ function release(p: Partial<AdminCatalogRelease> & Pick<AdminCatalogRelease, "id
     upc: null,
     accepted_at: "2026-10-10T10:00:00.000Z",
     tracks: [{ title: "Трек", explicit: false, duration: null }],
+    release_date: null,
     pitched_at: null,
     ...p
   };
@@ -84,5 +86,21 @@ describe("pitchedCatalogReleases", () => {
       release({ id: "z", pitched_at: "2026-11-05T10:00:00.000Z" })
     ];
     expect(pitchedCatalogReleases(rows).map((r) => r.id)).toEqual(["z", "y"]);
+  });
+});
+
+describe("splitPitching", () => {
+  it("до выхода — ближайшие сверху, остальные — в «уже вышли»", () => {
+    const rows = [
+      release({ id: "past", release_date: "2026-11-01", pitched_at: "2026-10-20T10:00:00.000Z" }),
+      release({ id: "far", release_date: "2026-12-01", pitched_at: "2026-11-02T10:00:00.000Z" }),
+      release({ id: "soon", release_date: "2026-11-13", pitched_at: "2026-11-01T10:00:00.000Z" }),
+      release({ id: "today", release_date: "2026-11-06", pitched_at: "2026-11-03T10:00:00.000Z" }),
+      release({ id: "nodate", pitched_at: "2026-11-04T10:00:00.000Z" }),
+      release({ id: "empty", release_date: "2026-11-20" })
+    ];
+    const { upcoming, released } = splitPitching(rows, "2026-11-06");
+    expect(upcoming.map((r) => r.id)).toEqual(["today", "soon", "far"]);
+    expect(released.map((r) => r.id)).toEqual(["nodate", "past"]);
   });
 });

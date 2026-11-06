@@ -116,3 +116,28 @@ export function pitchedCatalogReleases(
     .filter((r): r is AdminCatalogRelease & { pitched_at: string } => r.pitched_at != null)
     .sort((a, b) => b.pitched_at.localeCompare(a.pitched_at));
 }
+
+type PitchedRelease = AdminCatalogRelease & { pitched_at: string };
+
+/** Сегодня в формате YYYY-MM-DD по локальному времени. */
+export function localIsoDay(now: Date = new Date()): string {
+  const m = String(now.getMonth() + 1).padStart(2, "0");
+  const d = String(now.getDate()).padStart(2, "0");
+  return `${now.getFullYear()}-${m}-${d}`;
+}
+
+/**
+ * Питчинг делим по срочности: «до выхода» — редакциям ещё можно отправить, ближайшие релизы сверху;
+ * «уже вышли» — для истории, свежие правки сверху.
+ */
+export function splitPitching(
+  releases: readonly AdminCatalogRelease[],
+  today: string = localIsoDay()
+): { upcoming: PitchedRelease[]; released: PitchedRelease[] } {
+  const all = pitchedCatalogReleases(releases);
+  const upcoming = all
+    .filter((r) => r.release_date != null && r.release_date >= today)
+    .sort((a, b) => (a.release_date ?? "").localeCompare(b.release_date ?? ""));
+  const released = all.filter((r) => !(r.release_date != null && r.release_date >= today));
+  return { upcoming, released };
+}

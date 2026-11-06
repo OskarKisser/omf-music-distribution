@@ -375,7 +375,13 @@ function AdminPageInner() {
       <header className="mb-5">
         <h1 className="text-[32px] font-bold leading-none tracking-[-0.045em]">Модерация</h1>
         <p className="mt-2 text-[14px] text-omf-graphite">
-          {moderationQueue.length > 0 ? (
+          {view === "links" ? (
+            awaitingLink && awaitingLink.length > 0 ? (
+              `${awaitingLink.length} ${pluralRu(awaitingLink.length, ["релиз ждёт", "релиза ждут", "релизов ждут"])} ссылку`
+            ) : (
+              "Принятые релизы без ссылки"
+            )
+          ) : moderationQueue.length > 0 ? (
             <>
               {moderationQueue.length} {pluralRu(moderationQueue.length, ["ждёт", "ждут", "ждут"])} решения
               {stats?.oldest_wait_hours != null ? (

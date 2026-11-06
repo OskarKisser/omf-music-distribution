@@ -67,6 +67,8 @@ export type AdminCatalogRelease = {
   accepted_at: string;
   /** Без строк в `tracks` (старые синглы) — один трек с названием релиза. */
   tracks: { title: string; explicit: boolean; duration: number | null }[];
+  /** Дата выхода на площадках (YYYY-MM-DD), если артист указал. */
+  release_date: string | null;
   /** Когда артист последний раз сохранил заполненный питчинг; null — не заполнял. */
   pitched_at: string | null;
 };

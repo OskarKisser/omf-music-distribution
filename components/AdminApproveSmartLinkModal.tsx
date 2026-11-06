@@ -20,6 +20,9 @@ type Props = {
   paymentStatus?: string | null;
   /** releases.release_date: подставляем в поле, чтобы перед отправкой ссылки сверить дату выхода. */
   releaseDate?: string | null;
+  /** Уже выданная ссылка и UPC: «Изменить» открывает форму с ними, а не пустую. */
+  currentLink?: string | null;
+  currentUpc?: string | null;
   busy: boolean;
   onClose: () => void;
   /** Принять без ссылки. */
@@ -44,6 +47,8 @@ export function AdminApproveSmartLinkModal({
   mode,
   paymentStatus,
   releaseDate: currentReleaseDate,
+  currentLink,
+  currentUpc,
   busy,
   onClose,
   onAccept,
@@ -60,15 +65,16 @@ export function AdminApproveSmartLinkModal({
 
   useEffect(() => {
     if (open) {
-      setSmartLink("");
-      setUpc("");
+      setSmartLink(currentLink?.trim() ?? "");
+      setUpc(currentUpc?.trim() ?? "");
       setReleaseDate(initialDate);
       setLocalError(null);
     }
-  }, [open, releaseId, initialDate]);
+  }, [open, releaseId, initialDate, currentLink, currentUpc]);
 
   const link = smartLink.trim();
   const isLinkMode = mode === "link";
+  const editingLink = isLinkMode && Boolean(currentLink?.trim());
   const showUpc = isLinkMode || link.length > 0;
   const unpaidWarning = !isLinkMode && !isPaymentConfirmed(paymentStatus);
 
@@ -98,7 +104,9 @@ export function AdminApproveSmartLinkModal({
     onSubmitLink(releaseId, link, upc, releaseDate !== initialDate ? releaseDate : "");
   };
 
-  const primaryLabel = isLinkMode
+  const primaryLabel = editingLink
+    ? "Сохранить"
+    : isLinkMode
     ? "Отправить"
     : unpaidWarning
       ? "Всё равно принять"
@@ -137,10 +145,12 @@ export function AdminApproveSmartLinkModal({
             <div className="flex items-start justify-between gap-3">
               <div>
                 <h2 id="admin-approve-smart-title" className="text-[20px] font-bold tracking-tight">
-                  {isLinkMode ? "Ссылка на пресейв" : "Принять релиз"}
+                  {editingLink ? "Поменять ссылку" : isLinkMode ? "Ссылка на пресейв" : "Принять релиз"}
                 </h2>
                 <p className="mt-1 text-[14px] leading-relaxed text-omf-graphite">
-                  {isLinkMode
+                  {editingLink
+                    ? "Новая ссылка сразу появится у артиста в приложении. Второго сообщения в боте не будет."
+                    : isLinkMode
                     ? "Артист получит ссылку в боте и увидит её в приложении. После этого WAV удалятся из хранилища — скачай их заранее, если ещё нужны."
                     : `Артист получит сообщение, что релиз принят и ушёл на площадки (обычно ${DSP_REVIEW_DAYS_TEXT}). Ссылку добавишь позже в блоке «Ждут ссылку».`}
                 </p>
@@ -194,7 +204,7 @@ export function AdminApproveSmartLinkModal({
                 />
 
                 <label htmlFor="admin-release-date" className="mt-4 block text-[13px] text-omf-graphite">
-                  Дата выхода — придёт артисту в сообщении
+                  {editingLink ? "Дата выхода" : "Дата выхода — придёт артисту в сообщении"}
                 </label>
                 <input
                   id="admin-release-date"
