@@ -19,6 +19,8 @@ import { AdminPlatformIssuePanel } from "@/components/admin/AdminPlatformIssuePa
 import { AdminArtworkPanel } from "@/components/admin/AdminArtworkPanel";
 import { AdminDeleteReleaseSheet } from "@/components/admin/AdminDeleteReleaseSheet";
 import { AdminPressKitPanel } from "@/components/admin/AdminPressKitPanel";
+import { AdminSmartLinkPanel } from "@/components/admin/AdminSmartLinkPanel";
+import { adminBackTarget, parseAdminReleaseFrom, type AdminReleaseFrom } from "@/lib/admin-nav";
 import { isPitchingOpen, type PressKit } from "@/lib/press-kit";
 import { ReleaseSleeve } from "@/components/ReleaseSleeve";
 import { AdminApproveSmartLinkModal, type ApproveModalMode } from "@/components/AdminApproveSmartLinkModal";
@@ -111,8 +113,11 @@ export default function AdminReleaseDetailPage() {
   const [portalReady, setPortalReady] = useState(false);
 
   const [isAdmin, setIsAdmin] = useState(false);
+  /** Откуда открыли: «назад» и переход после ссылки ведут туда же. Из URL, без Suspense для useSearchParams. */
+  const [from, setFrom] = useState<AdminReleaseFrom>("queue");
 
   useEffect(() => {
+    setFrom(parseAdminReleaseFrom(new URLSearchParams(window.location.search).get("from")));
     setPortalReady(true);
     initTelegramWebApp();
     setUserId(getTelegramUserId());
@@ -217,9 +222,12 @@ export default function AdminReleaseDetailPage() {
         setApproveModal(null);
         if (fromQueue) {
           await goNext(id, "Принят со ссылкой");
+        } else if (from === "links") {
+          toast.success(release?.smart_link?.trim() ? "Ссылку поменял" : "Ссылка отправлена артисту");
+          router.push(adminBackTarget("links").href);
         } else {
-          toast.success("Ссылка отправлена артисту");
-          router.push("/admin");
+          toast.success(release?.smart_link?.trim() ? "Ссылку поменял" : "Ссылка отправлена артисту");
+          await load();
         }
       } catch (e: unknown) {
         toast.error(e instanceof Error ? e.message : "Не удалось сохранить ссылку.");
@@ -227,7 +235,7 @@ export default function AdminReleaseDetailPage() {
         setBusy(false);
       }
     },
-    [goNext, router]
+    [goNext, router, from, release?.smart_link, load]
   );
 
   const handleReject = useCallback(async (comment: string, reasonKeys: string[]) => {
@@ -325,13 +333,19 @@ export default function AdminReleaseDetailPage() {
   const artistUsername = release.telegram_username?.trim().replace(/^@/, "") || null;
   const title = displayTitle || release.track_name || "Релиз";
   const platformUpdating = canonical === "ready" && Boolean(release.platform_issue_at);
+  // Релиз на проверке открыт из очереди, даже если пришли по ссылке из бота с другим `from`.
+  const back = adminBackTarget(canModerate ? "queue" : from);
+  const openLinkModal = () => {
+    triggerHaptic("light");
+    setApproveModal({ id: release.id, mode: "link" });
+  };
 
   return (
     <div
       className={cn(
         "mx-auto w-full max-w-lg px-1 pt-4 text-omf-ink",
         wide && "lg:max-w-5xl",
-        canModerate ? "pb-44" : "pb-40"
+        canModerate || awaitingLink ? "pb-44" : "pb-40"
       )}
     >
       <AdminRejectModal
@@ -349,6 +363,8 @@ export default function AdminReleaseDetailPage() {
         onClose={() => setApproveModal(null)}
         onAccept={(id) => void handleAccept(id)}
         releaseDate={release?.release_date ?? null}
+        currentLink={approveModal?.mode === "link" ? release?.smart_link : null}
+        currentUpc={approveModal?.mode === "link" ? release?.upc : null}
         onSubmitLink={(id, link, upc, date) => void handleSubmitLink(id, link, upc, date, approveModal?.mode !== "link")}
       />
 
@@ -365,11 +381,11 @@ export default function AdminReleaseDetailPage() {
 
       <div className="mb-4 flex items-center justify-between gap-3">
         <Link
-          href="/admin"
+          href={back.href}
           className="omf-focus -ml-2 inline-flex items-center gap-1.5 rounded-full px-2 py-1.5 text-[14px] text-omf-graphite transition-colors hover:text-omf-ink"
         >
           <ArrowLeft className="h-4 w-4" aria-hidden />
-          Очередь
+          {back.label}
         </Link>
         {canModerate && queue ? (
           <p className="text-[13px] tabular-nums text-omf-graphite">
@@ -470,6 +486,10 @@ export default function AdminReleaseDetailPage() {
             onChange={(fields) => setRelease((prev) => (prev ? { ...prev, ...fields } : prev))}
           />
 
+          {canonical === "ready" ? (
+            <AdminSmartLinkPanel smartLink={release.smart_link ?? null} upc={release.upc ?? null} onEdit={openLinkModal} />
+          ) : null}
+
           {canonical === "ready" || canonical === "processing" ? (
             <AdminArtworkPanel
               release={release}
@@ -497,7 +517,7 @@ export default function AdminReleaseDetailPage() {
             </h2>
             {audioArchived ? (
               <p className="text-[14px] leading-snug text-omf-graphite">
-                Релиз на площадках. WAV удалили из хранилища после выдачи ссылки, чтобы не занимать место, — так и должно быть.{" "}
+                WAV удалили из хранилища после выдачи ссылки, чтобы не занимать место.{" "}
                 <button
                   type="button"
                   onClick={() => openSmartLink(smartLink)}
@@ -650,31 +670,33 @@ export default function AdminReleaseDetailPage() {
           </div>,
           document.body
         )
-      ) : canModerate ? null : awaitingLink ? (
-        <section className="mt-8 border-t border-omf-line pt-6" aria-labelledby="admin-awaiting">
-          <h2 id="admin-awaiting" className="text-[16px] font-bold tracking-tight">
-            Принят, ждёт ссылку
-          </h2>
-          <p className="mt-1.5 text-[14px] leading-relaxed text-omf-graphite">
-            Релиз ушёл на площадки. Когда придёт UPC и будет готов BandLink, добавь ссылку — артист получит её в боте.
-          </p>
-          <button
-            type="button"
-            disabled={busy}
-            onClick={() => {
-              triggerHaptic("light");
-              setApproveModal({ id: release.id, mode: "link" });
-            }}
-            className="omf-btn-primary mt-4 w-full disabled:opacity-50"
+      ) : awaitingLink && portalReady ? (
+        createPortal(
+          <div
+            role="group"
+            aria-label="Ссылка для артиста"
+            className={cn(
+              "fixed inset-x-0 bottom-0 z-[60] border-t border-omf-line bg-omf-bg pb-[env(safe-area-inset-bottom,0px)]",
+              wide && "lg:left-64"
+            )}
           >
-            Добавить ссылку
-          </button>
-        </section>
-      ) : (
-        <p className="mt-8 border-t border-omf-line pt-6 text-[14px] leading-relaxed text-omf-graphite">
-          Релиз сейчас не «на проверке», поэтому решение здесь принять нельзя.
-        </p>
-      )}
+            <div className={cn("mx-auto flex max-w-lg items-center gap-3 px-4 py-3", wide && "lg:max-w-5xl")}>
+              <p className="min-w-0 flex-1 text-[13px] leading-snug text-omf-graphite">
+                Артист ждёт ссылку BandLink
+              </p>
+              <button
+                type="button"
+                disabled={busy}
+                onClick={openLinkModal}
+                className={cn("omf-btn-primary shrink-0 px-5 disabled:opacity-50", wide && "lg:w-44")}
+              >
+                Добавить ссылку
+              </button>
+            </div>
+          </div>,
+          document.body
+        )
+      ) : null}
     </div>
   );
 }

@@ -23,6 +23,7 @@ type ReleaseRow = {
   artwork_url: string | null;
   smart_link: string | null;
   upc: string | null;
+  release_date: string | null;
   created_at: string;
 };
 
@@ -42,7 +43,7 @@ async function handleCatalog(request: NextRequest): Promise<Response> {
   const { data, error } = await guard.supabase
     .from("releases")
     .select(
-      "id, title, track_name, artist_name, collaborators, release_type, genre, artwork_url, smart_link, upc, created_at"
+      "id, title, track_name, artist_name, collaborators, release_type, genre, artwork_url, smart_link, upc, release_date, created_at"
     )
     .eq("status", "ready")
     .order("created_at", { ascending: false })
@@ -97,6 +98,7 @@ async function handleCatalog(request: NextRequest): Promise<Response> {
       artwork_url: r.artwork_url,
       smart_link: r.smart_link?.trim() || null,
       upc: r.upc?.trim() || null,
+      release_date: /^\d{4}-\d{2}-\d{2}/.exec(r.release_date ?? "")?.[0] ?? null,
       accepted_at: acceptedAt.get(r.id) ?? r.created_at,
       tracks: tracks.length > 0 ? tracks : [{ title, explicit: false, duration: null }],
       pitched_at: pitchedAt.get(r.id) ?? null
