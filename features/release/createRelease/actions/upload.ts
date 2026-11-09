@@ -1,6 +1,6 @@
-import { formatErrorMessage, getPostgrestErrorPayload, USER_REQUEST_TIMEOUT_MESSAGE } from "@/lib/errors";
+import { getPostgrestErrorPayload, USER_REQUEST_TIMEOUT_MESSAGE } from "@/lib/errors";
+import { userUploadErrorText } from "@/lib/upload-error-text";
 import { withRequestTimeout } from "@/lib/withRequestTimeout";
-import { getUploadErrorDetails } from "@/lib/logger";
 import { requestScreenWakeLock, releaseWakeLock } from "@/lib/wake-lock";
 import { hapticMap } from "@/lib/haptic-map";
 import { addReleaseTrack, uploadReleaseTrackAudio } from "@/repositories/releases.repo";
@@ -76,20 +76,9 @@ export async function uploadTrackWavAtIndex(options: {
       });
     } catch (e: unknown) {
       console.error("[uploadTrackWavAtIndex] Storage (WAV) upload failed", { error: e });
-      const up = getUploadErrorDetails(e);
-      const sc =
-        e && typeof e === "object" && "statusCode" in e
-          ? Number((e as { statusCode?: unknown }).statusCode)
-          : NaN;
-      const statusLabel = Number.isFinite(sc) ? String(sc) : "0 (сеть/обрыв)";
-      const msg = formatErrorMessage(
-        e,
-        "Не удалось загрузить WAV в хранилище. Проверьте политику bucket, размер и формат файла."
-      );
+      const msg = userUploadErrorText(e, "storage");
       useCreateReleaseDraftStore.getState().setSubmitError(msg);
-      toast.error(`Загрузка WAV: ${msg}`, {
-        description: `HTTP ${statusLabel}${up.supabaseHint ? ` · ${up.supabaseHint}` : ""}`
-      });
+      toast.error(msg);
       return false;
     }
 
@@ -113,12 +102,7 @@ export async function uploadTrackWavAtIndex(options: {
         postgrest: getPostgrestErrorPayload(e),
         error: e
       });
-      useCreateReleaseDraftStore.getState().setSubmitError(
-        formatErrorMessage(
-          e,
-          "Файл в хранилище загружен, но не удалось сохранить строку в таблице tracks. Проверьте схему БД и RLS."
-        )
-      );
+      useCreateReleaseDraftStore.getState().setSubmitError(userUploadErrorText(e, "database"));
       return false;
     }
 
@@ -218,20 +202,9 @@ export async function uploadTracksForDraftStep(options: {
               hint: "Network → POST …/storage/v1/object/releases/…",
               error: e
             });
-            const up = getUploadErrorDetails(e);
-            const sc =
-              e && typeof e === "object" && "statusCode" in e
-                ? Number((e as { statusCode?: unknown }).statusCode)
-                : NaN;
-            const statusLabel = Number.isFinite(sc) ? String(sc) : "0 (сеть/обрыв)";
-            const msg = formatErrorMessage(
-              e,
-              "Не удалось загрузить WAV в хранилище. Проверьте политику bucket «releases», размер и формат файла."
-            );
+            const msg = userUploadErrorText(e, "storage");
             useCreateReleaseDraftStore.getState().setSubmitError(msg);
-            toast.error(`Трек ${index + 1}: ${msg}`, {
-              description: `HTTP ${statusLabel}${up.supabaseHint ? ` · ${up.supabaseHint}` : ""}`
-            });
+            toast.error(`Трек ${index + 1}: ${msg}`);
             return false;
           }
           useCreateReleaseDraftStore.getState().setTrackAudioUrlAt(index, audioUrl);
@@ -263,12 +236,7 @@ export async function uploadTracksForDraftStep(options: {
             postgrest: getPostgrestErrorPayload(e),
             error: e
           });
-          useCreateReleaseDraftStore.getState().setSubmitError(
-            formatErrorMessage(
-              e,
-              "Файл в хранилище загружен, но не удалось сохранить строку в таблице tracks. Проверьте схему БД и RLS."
-            )
-          );
+          useCreateReleaseDraftStore.getState().setSubmitError(userUploadErrorText(e, "database"));
           return false;
         }
       }
@@ -279,7 +247,7 @@ export async function uploadTracksForDraftStep(options: {
       console.error("[uploadTracksForDraftStep] unexpected", { error: e });
       useCreateReleaseDraftStore
         .getState()
-        .setSubmitError(formatErrorMessage(e, "Ошибка загрузки WAV."));
+        .setSubmitError(userUploadErrorText(e, "storage"));
       return false;
     }
 
