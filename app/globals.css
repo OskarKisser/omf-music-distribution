@@ -24,7 +24,10 @@
     --omf-line-strong: #3a404c;
     --omf-ink: #eceef0;
     --omf-graphite: #8c93a1;
-    --omf-faint: #5e6573;
+    /* Мелкие подсказки: 5.0:1 на фоне, 4.5:1 на карточках (WCAG AA). */
+    --omf-faint: #868d9b;
+    /* Текст выключенных кнопок: намеренно тусклый, к нему требование контраста не применяется. */
+    --omf-disabled: #5e6573;
     --omf-ultra: #2f3fe0;
     --omf-ultra-hover: #4050f0;
     --omf-ultra-text: #8c9bff;
@@ -676,7 +679,7 @@ button {
   }
   .omf-btn-primary:disabled {
     background: var(--omf-surface-2);
-    color: var(--omf-faint);
+    color: var(--omf-disabled);
     cursor: not-allowed;
   }
 
