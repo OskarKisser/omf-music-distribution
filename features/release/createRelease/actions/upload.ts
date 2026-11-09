@@ -101,7 +101,8 @@ export async function uploadTrackWavAtIndex(options: {
           title: track.title,
           explicit: Boolean(track.explicit),
           audioUrl,
-          lyrics: track.lyrics
+          lyrics: track.lyrics,
+          originalFilename: options.file.name
         }),
         SUPABASE_DB_OP_TIMEOUT_MS,
         USER_REQUEST_TIMEOUT_MESSAGE
@@ -246,7 +247,8 @@ export async function uploadTracksForDraftStep(options: {
               title: track.title,
               explicit: Boolean(track.explicit),
               audioUrl,
-              lyrics: track.lyrics
+              lyrics: track.lyrics,
+              originalFilename: file.name
             }),
             SUPABASE_DB_OP_TIMEOUT_MS,
             USER_REQUEST_TIMEOUT_MESSAGE

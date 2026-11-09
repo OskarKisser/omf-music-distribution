@@ -12,6 +12,8 @@ import {
   downloadStorageObjectBytes,
   guessFilenameFromUrl
 } from "@/lib/supabase-storage-download";
+import { buildTrackAudioFilename, claimUniqueFilename } from "@/lib/track-filename";
+import { ensureWavBitDepthForDelivery } from "@/lib/wav-bit-depth";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 300;
@@ -106,21 +108,29 @@ async function handleBundle(
 
   try {
     if (tracks.length > 0) {
+      const usedAudioNames = new Set<string>();
       for (const t of tracks) {
         const url = typeof t.file_path === "string" ? t.file_path.trim() : "";
         if (!url) continue;
         const idx = typeof t.index === "number" ? t.index : 0;
         const { data } = await downloadStorageObjectBytes(guard.supabase, url);
         const fallback = `track-${String(idx + 1).padStart(2, "0")}`;
-        const name = guessFilenameFromUrl(url, fallback);
-        audioFolder.file(name, new Uint8Array(data), { binary: true });
+        const name = claimUniqueFilename(
+          buildTrackAudioFilename({
+            originalFilename: t.original_filename,
+            title: t.title,
+            fallback: guessFilenameFromUrl(url, fallback)
+          }),
+          usedAudioNames
+        );
+        audioFolder.file(name, new Uint8Array(ensureWavBitDepthForDelivery(data)), { binary: true });
       }
     } else {
       const legacy = typeof row.audio_url === "string" ? row.audio_url.trim() : "";
       if (legacy) {
         const { data } = await downloadStorageObjectBytes(guard.supabase, legacy);
         const name = guessFilenameFromUrl(legacy, `master-${releaseId}`);
-        audioFolder.file(name, new Uint8Array(data), { binary: true });
+        audioFolder.file(name, new Uint8Array(ensureWavBitDepthForDelivery(data)), { binary: true });
       }
     }
 

@@ -12,6 +12,8 @@ import {
   downloadStorageObjectBytes,
   guessFilenameFromUrl
 } from "@/lib/supabase-storage-download";
+import { buildTrackAudioFilename } from "@/lib/track-filename";
+import { ensureWavBitDepthForDelivery } from "@/lib/wav-bit-depth";
 import { loadPressKitRows } from "@/lib/server/press-kit";
 import { buildPressPhotoFilename } from "@/lib/press-kit";
 import { STORAGE_BUCKET_PRESS_PHOTOS } from "@/lib/storage-buckets";
@@ -178,11 +180,12 @@ async function handleDownload(
 
     let audioUrl: string | null = null;
     let filenameBase = `release-${releaseId}`;
+    let trackNames: { originalFilename: string | null; title: string | null } | null = null;
 
     if (trackId.length > 0) {
       const { data: tr, error: trErr } = await guard.supabase
         .from("tracks")
-        .select("id, file_path, index, release_id")
+        .select("*")
         .eq("id", trackId)
         .maybeSingle();
 
@@ -194,6 +197,7 @@ async function handleDownload(
         return NextResponse.json({ ok: false, error: "Трек не найден." }, { status: 404 });
       }
       audioUrl = (tr.file_path as string | null)?.trim() ?? null;
+      trackNames = { originalFilename: tr.original_filename, title: tr.title };
       const idx = typeof tr.index === "number" ? tr.index : 0;
       filenameBase = `track-${String(idx + 1).padStart(2, "0")}-${releaseId}`;
     } else if (trackIndexRaw !== null && trackIndexRaw !== "") {
@@ -203,7 +207,7 @@ async function handleDownload(
       }
       const { data: tr, error: trErr } = await guard.supabase
         .from("tracks")
-        .select("file_path, index")
+        .select("*")
         .eq("release_id", releaseId)
         .eq("index", idx)
         .maybeSingle();
@@ -213,6 +217,7 @@ async function handleDownload(
         return NextResponse.json({ ok: false, error: "Не удалось загрузить трек." }, { status: 500 });
       }
       audioUrl = (tr?.file_path as string | null)?.trim() ?? null;
+      trackNames = { originalFilename: tr?.original_filename ?? null, title: tr?.title ?? null };
       filenameBase = `track-${String(idx + 1).padStart(2, "0")}-${releaseId}`;
     } else {
       audioUrl = (row.audio_url as string | null)?.trim() ?? null;
@@ -224,9 +229,12 @@ async function handleDownload(
     }
 
     const { data, contentType } = await downloadStorageObjectBytes(guard.supabase, audioUrl);
-    const filename = guessFilenameFromUrl(audioUrl, filenameBase);
+    const guessedName = guessFilenameFromUrl(audioUrl, filenameBase);
+    const filename = trackNames
+      ? buildTrackAudioFilename({ ...trackNames, fallback: guessedName })
+      : guessedName;
 
-    return new NextResponse(data, {
+    return new NextResponse(ensureWavBitDepthForDelivery(data), {
       headers: {
         "Content-Type": contentType ?? "application/octet-stream",
         "Content-Disposition": contentDispositionAttachment(filename),
