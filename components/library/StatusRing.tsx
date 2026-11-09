@@ -19,6 +19,8 @@ const RING: Record<NextStepKind, { progress: number; color: string; Icon: Lucide
 /** Кольцо статуса: в строке библиотеки (44px) и крупно на экране релиза (52px). */
 export function StatusRing({ kind, size = 44, className }: { kind: NextStepKind; size?: 44 | 52; className?: string }) {
   const { progress, color, Icon } = RING[kind];
+  /** Релиз в работе у нас или на площадках: по кольцу идёт блик. */
+  const live = kind === "waiting" || kind === "waiting_long" || kind === "approved_no_link" || kind === "updating";
   const stroke = size === 52 ? 3.5 : 3;
   const r = size / 2 - stroke;
   const circumference = 2 * Math.PI * r;
@@ -41,6 +43,22 @@ export function StatusRing({ kind, size = 44, className }: { kind: NextStepKind;
             strokeWidth={stroke}
             strokeLinecap="round"
             strokeDasharray={`${circumference * progress} ${circumference}`}
+            className="omf-ring-arc"
+            style={{ ["--ring-len" as string]: `${circumference * progress}px` }}
+          />
+        ) : null}
+        {live ? (
+          <circle
+            cx={c}
+            cy={c}
+            r={r}
+            fill="none"
+            stroke="#fff"
+            strokeOpacity={0.7}
+            strokeWidth={stroke}
+            strokeLinecap="round"
+            strokeDasharray={`${circumference * 0.07} ${circumference}`}
+            className="omf-ring-orbit"
           />
         ) : null}
       </svg>

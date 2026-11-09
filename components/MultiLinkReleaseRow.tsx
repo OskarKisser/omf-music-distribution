@@ -1,6 +1,7 @@
 "use client";
 
-import { Copy } from "lucide-react";
+import { useState } from "react";
+import { Check, Copy } from "lucide-react";
 import { ReleaseSleeve } from "@/components/ReleaseSleeve";
 import { toast } from "sonner";
 import { openSmartLink } from "@/lib/open-smart-link";
@@ -28,21 +29,26 @@ function compactUrlForCard(url: string): string {
 }
 
 /** Строка раздела «Ссылки»: тап открывает ссылку, кнопка справа копирует. */
-export function MultiLinkReleaseRow({ releaseId, title, artist, smartLink, coverUrl }: MultiLinkReleaseRowProps) {
+export function MultiLinkReleaseRow({ releaseId, title, artist, smartLink, coverUrl, index = 0 }: MultiLinkReleaseRowProps) {
   const lineUrl = compactUrlForCard(smartLink);
+  const [copied, setCopied] = useState(false);
 
   const copy = async () => {
     try {
       await navigator.clipboard.writeText(smartLink.trim());
       hapticMap.notificationSuccess();
-      toast.success("Ссылка скопирована");
+      setCopied(true);
+      window.setTimeout(() => setCopied(false), 1600);
     } catch {
       toast.error("Не получилось скопировать. Открой ссылку и скопируй адрес из браузера.");
     }
   };
 
   return (
-    <div className="-mx-2 grid grid-cols-[1fr_40px] items-center gap-3 rounded-[14px] px-2 py-2">
+    <div
+      className="omf-rise -mx-2 grid grid-cols-[1fr_40px] items-center gap-3 rounded-[14px] px-2 py-2"
+      style={{ ["--i" as string]: index + 1 }}
+    >
       <button
         type="button"
         onClick={() => {
@@ -67,7 +73,11 @@ export function MultiLinkReleaseRow({ releaseId, title, artist, smartLink, cover
         aria-label={`Скопировать ссылку на «${title}»`}
         className="omf-focus flex h-10 w-10 items-center justify-center rounded-[12px] bg-omf-surface-2 text-omf-ink transition-transform active:scale-95"
       >
-        <Copy className="h-[18px] w-[18px]" aria-hidden />
+        {copied ? (
+          <Check key="ok" className="omf-pop h-[18px] w-[18px] text-omf-green" aria-hidden />
+        ) : (
+          <Copy className="h-[18px] w-[18px]" aria-hidden />
+        )}
       </button>
     </div>
   );

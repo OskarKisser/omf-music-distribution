@@ -12,6 +12,7 @@ import { MultiLinkReleaseRow } from "@/components/MultiLinkReleaseRow";
 import { PullRefreshBrand } from "@/components/PullRefreshBrand";
 import { ScreenHeader } from "@/components/ScreenHeader";
 import { LibraryReleaseSkeletonGrid } from "@/components/ui/LibrarySkeleton";
+import { EmptyShelf } from "@/components/ui/EmptyShelf";
 import { getReleaseDisplayTitle } from "@/repositories/releases.repo";
 import { useReleases } from "@/lib/hooks/useReleases";
 import { prepareNewReleaseDraft } from "@/features/release/createRelease/store";
@@ -150,27 +151,40 @@ function MultiLinksPageInner() {
       {showSkeleton ? (
         <LibraryReleaseSkeletonGrid count={4} variant="rows" />
       ) : filtered.length === 0 ? (
-        <div className="border-t border-omf-line pt-6">
-          <p className="text-[18px] font-bold tracking-tight">
-            {withLinks.length === 0 ? "Ссылок пока нет" : "Ничего не нашлось"}
-          </p>
-          <p className="mt-1.5 text-[14px] leading-relaxed text-omf-graphite">
-            {withLinks.length === 0
-              ? "Ссылка появится здесь, когда модератор одобрит релиз и площадки его опубликуют."
-              : "Попробуй другое название или имя артиста."}
-          </p>
-          {withLinks.length === 0 && upcoming.length === 0 && (
-            <button
-              onClick={() => {
-                prepareNewReleaseDraft();
-                router.push("/create/metadata");
-              }}
-              className="omf-btn-primary mt-5 w-full"
-            >
-              Создать релиз
-            </button>
-          )}
-        </div>
+        withLinks.length === 0 ? (
+          <EmptyShelf
+            sticker="ссылка"
+            title="Ссылок пока нет"
+            text="Одна короткая ссылка на все площадки появится здесь сама, когда релиз выйдет."
+            steps={
+              upcoming.length > 0
+                ? undefined
+                : ["Отправь релиз на проверку", "Модератор посмотрит — до 24 часов", `Площадки опубликуют за ${DSP_REVIEW_DAYS_TEXT}`]
+            }
+            action={
+              upcoming.length === 0 ? (
+                <button
+                  type="button"
+                  onClick={() => {
+                    hapticMap.impactLight();
+                    prepareNewReleaseDraft();
+                    router.push("/create/metadata");
+                  }}
+                  className="omf-btn-primary w-full"
+                >
+                  Создать релиз
+                </button>
+              ) : null
+            }
+          />
+        ) : (
+          <div className="border-t border-omf-line pt-6">
+            <p className="text-[18px] font-bold tracking-tight">Ничего не нашлось</p>
+            <p className="mt-1.5 text-[14px] leading-relaxed text-omf-graphite">
+              Попробуй другое название или имя артиста.
+            </p>
+          </div>
+        )
       ) : (
         <>
           {hero ? (

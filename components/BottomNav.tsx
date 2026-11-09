@@ -80,19 +80,21 @@ const BottomNavInner = memo(function BottomNavInner() {
                     onClick={() => {
                       if (!isActive) hapticMap.impactLight();
                     }}
-                    className={`omf-focus relative flex min-w-0 flex-1 flex-col items-center gap-1 pb-2 pt-2.5 transition-colors duration-150 ${
+                    className={`omf-focus group relative flex min-w-0 flex-1 flex-col items-center gap-1 pb-2 pt-2 transition-colors duration-150 ${
                       isActive ? "text-omf-ink" : "text-omf-graphite hover:text-omf-ink"
                     }`}
                   >
-                    {isActive ? (
-                      <motion.span
-                        layoutId="activeTab"
-                        className="absolute left-1/2 top-0 h-[2px] w-8 -translate-x-1/2 rounded-full bg-omf-ink"
-                        transition={{ type: "spring", stiffness: 500, damping: 40 }}
-                        aria-hidden
-                      />
-                    ) : null}
-                    <Icon size={20} strokeWidth={isActive ? 2.2 : 1.8} aria-hidden />
+                    <span className="relative flex h-7 w-[52px] items-center justify-center transition-transform duration-150 group-active:scale-90">
+                      {isActive ? (
+                        <motion.span
+                          layoutId="activeTab"
+                          className="absolute inset-0 rounded-full bg-omf-surface-2"
+                          transition={{ type: "spring", stiffness: 500, damping: 40 }}
+                          aria-hidden
+                        />
+                      ) : null}
+                      <Icon className="relative" size={20} strokeWidth={isActive ? 2.2 : 1.8} aria-hidden />
+                    </span>
                     <span className={`text-[11px] ${isActive ? "font-medium" : ""}`}>{tab.label}</span>
                   </Link>
                 );

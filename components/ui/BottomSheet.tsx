@@ -38,12 +38,12 @@ export function BottomSheet({ open, onClose, header, children }: BottomSheetProp
 
   return createPortal(
     <div className="fixed inset-0 z-[100] flex items-end justify-center" role="presentation">
-      <button type="button" aria-label="Закрыть" onClick={onClose} className="absolute inset-0 cursor-default bg-black/60" />
+      <button type="button" aria-label="Закрыть" onClick={onClose} className="omf-backdrop-in absolute inset-0 cursor-default bg-black/60" />
       <div
         role="dialog"
         aria-modal="true"
         aria-labelledby={titleId}
-        className="relative max-h-[88dvh] w-full max-w-lg overflow-y-auto rounded-t-[22px] bg-omf-surface px-5 pt-2.5"
+        className="omf-sheet-in relative max-h-[88dvh] w-full max-w-lg overflow-y-auto rounded-t-[22px] bg-omf-surface px-5 pt-2.5"
         style={{ paddingBottom: "calc(1.75rem + env(safe-area-inset-bottom, 0px) + var(--keyboard-overlap, 0px))" }}
       >
         <div className="mx-auto mb-3.5 h-1 w-[38px] rounded-full bg-omf-line-strong" aria-hidden />

@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
-import { ArrowLeft, ArrowUpRight, ChevronDown, Copy, Download, Send } from "lucide-react";
+import { ArrowLeft, ArrowUpRight, Check, ChevronDown, Copy, Download, Send } from "lucide-react";
 import { ReleaseSleeve } from "@/components/ReleaseSleeve";
 import { cn } from "@/lib/utils";
 import { parseCollaboratorsFromDb } from "@/lib/collaborators";
@@ -31,6 +31,7 @@ import {
   type ReleaseNextStep
 } from "@/lib/release-next-step";
 import { StatusRing } from "@/components/library/StatusRing";
+import { ReleaseJourney } from "@/components/library/ReleaseJourney";
 import { formatPlatforms, readPlatformIssue } from "@/lib/platform-issue";
 import { ReleaseTakedownRequest } from "@/components/ReleaseTakedownRequest";
 import { useCreateReleaseDraftStore } from "@/features/release/createRelease/store";
@@ -146,13 +147,15 @@ function statusLine(kind: NextStepKind, notifiesInTelegram: boolean): string {
   }
 }
 
-async function copySmartLink(link: string): Promise<void> {
+async function copySmartLink(link: string): Promise<boolean> {
   hapticMap.impactLight();
   try {
     await navigator.clipboard.writeText(link);
     toast.success("Ссылка скопирована");
+    return true;
   } catch {
     toast.error("Не получилось скопировать. Зажми ссылку под кнопкой и скопируй вручную.");
+    return false;
   }
 }
 
@@ -169,6 +172,7 @@ export default function ReleaseDetailsClient() {
   const [error, setError] = useState<string | null>(null);
   const [fixing, setFixing] = useState(false);
   const [dataOpen, setDataOpen] = useState(false);
+  const [copied, setCopied] = useState(false);
 
   useEffect(() => {
     debugInit("release/details", "init start");
@@ -326,9 +330,17 @@ export default function ReleaseDetailsClient() {
     return shell(
       <div aria-busy="true">
         {backButton}
-        <div className="mx-auto aspect-square w-[72%] max-w-[300px] animate-pulse rounded-sleeve bg-omf-surface" />
-        <div className="mx-auto mt-6 h-7 w-1/2 animate-pulse rounded bg-omf-surface" />
-        <div className="mx-auto mt-2 h-4 w-1/3 animate-pulse rounded bg-omf-surface" />
+        <div className="skeleton-shimmer-bg mx-auto aspect-square w-[58%] max-w-[232px] rounded-sleeve bg-omf-surface" />
+        <div className="skeleton-shimmer-bg mx-auto mt-5 h-7 w-1/2 rounded bg-omf-surface" />
+        <div className="skeleton-shimmer-bg mx-auto mt-2 h-4 w-1/3 rounded bg-omf-surface" />
+        <div className="mt-6 grid grid-cols-[52px_1fr] items-center gap-3.5">
+          <div className="skeleton-shimmer-bg h-[52px] w-[52px] rounded-full bg-omf-surface" />
+          <div className="space-y-2">
+            <div className="skeleton-shimmer-bg h-4 w-2/5 rounded bg-omf-surface" />
+            <div className="skeleton-shimmer-bg h-3.5 w-4/5 rounded bg-omf-surface" />
+          </div>
+        </div>
+        <div className="skeleton-shimmer-bg mt-4 h-[52px] rounded-control bg-omf-surface" />
       </div>
     );
   }
@@ -409,7 +421,7 @@ export default function ReleaseDetailsClient() {
     <>
       {backButton}
 
-      <div className="mx-auto w-[58%] max-w-[232px]">
+      <div className="omf-sleeve-in mx-auto w-[58%] max-w-[232px]">
         <ReleaseSleeve
           seed={release.id}
           title={displayTitle}
@@ -437,6 +449,8 @@ export default function ReleaseDetailsClient() {
             </p>
           </div>
         </div>
+
+        <ReleaseJourney kind={status.kind} className="mt-5" />
 
         {status.kind === "updating" && platformIssue ? (
           <dl className="mt-4 border-t border-omf-line text-[15px]">
@@ -481,11 +495,21 @@ export default function ReleaseDetailsClient() {
               </button>
               <button
                 type="button"
-                onClick={() => void copySmartLink(smartLink)}
+                onClick={() => {
+                  void copySmartLink(smartLink).then((ok) => {
+                    if (!ok) return;
+                    setCopied(true);
+                    window.setTimeout(() => setCopied(false), 1600);
+                  });
+                }}
                 aria-label="Скопировать ссылку"
                 className="omf-focus flex h-[52px] items-center justify-center rounded-control bg-omf-surface text-omf-ink transition-transform active:scale-95"
               >
-                <Copy className="h-5 w-5" aria-hidden />
+                {copied ? (
+                  <Check key="ok" className="omf-pop h-5 w-5 text-omf-green" aria-hidden />
+                ) : (
+                  <Copy className="h-5 w-5" aria-hidden />
+                )}
               </button>
             </div>
             <button
@@ -564,8 +588,8 @@ export default function ReleaseDetailsClient() {
             />
           </span>
         </button>
-        {dataOpen ? (
-          <div id="release-data">
+        <div id="release-data" className="omf-collapse" data-open={dataOpen} aria-hidden={!dataOpen}>
+          <div>
             <dl>
               {passportRows.map((row) => (
                 <div key={row.label} className="flex items-baseline justify-between gap-4 border-b border-omf-line py-3">
@@ -586,7 +610,7 @@ export default function ReleaseDetailsClient() {
               </a>
             ) : null}
           </div>
-        ) : null}
+        </div>
       </div>
 
       <ReleaseTakedownRequest
