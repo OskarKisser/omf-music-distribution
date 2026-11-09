@@ -100,6 +100,11 @@ html {
   background-color: var(--omf-bg);
   min-height: 100%;
   min-height: 100dvh;
+  /*
+   * Только на html (уходит на viewport). На body нельзя: при overflow на html он сам скролл-контейнер
+   * без переполнения, и свежий Chromium (Android WebView) с overscroll-behavior: none не пускает touch-жест к окну.
+   */
+  overscroll-behavior-y: none;
 }
 
 /* Фокус клавиатуры сохраняем; убираем лишний outline при тапе */
@@ -132,7 +137,6 @@ body {
   height: auto !important;
   scrollbar-width: none;
   -webkit-overflow-scrolling: touch;
-  overscroll-behavior-y: none;
   touch-action: pan-y pinch-zoom;
 }
 
@@ -196,7 +200,6 @@ select {
   color: var(--omf-ink);
   font-size: 16px;
   line-height: 1.4;
-  overscroll-behavior: contain;
 }
 
 input::placeholder,
