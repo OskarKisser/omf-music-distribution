@@ -237,6 +237,41 @@ describe("/api/releases/tracks", () => {
     });
   });
 
+  it("сохраняет очищенное имя файла, а без него колонку не трогает", async () => {
+    resolveReleaseActor.mockResolvedValue({ kind: "telegram", telegramUserId: 1 });
+    const db = useDb((call) => ok(call.table === "releases" ? ownRow() : null));
+    const { POST } = await import("@/app/api/releases/tracks/route");
+
+    await POST(post("/api/releases/tracks", { ...track, originalFilename: "../Мой трек.wav" }));
+    await POST(post("/api/releases/tracks", track));
+
+    const upserts = db.calls.filter((c) => c.table === "tracks" && c.op === "upsert");
+    expect(upserts[0]?.payload).toMatchObject({ original_filename: "Мой трек.wav" });
+    expect(upserts[1]?.payload).not.toHaveProperty("original_filename");
+  });
+
+  it("сохраняет трек и в базе без колонки original_filename", async () => {
+    resolveReleaseActor.mockResolvedValue({ kind: "telegram", telegramUserId: 1 });
+    const db = useDb((call) => {
+      if (call.table === "releases") return ok(ownRow());
+      const hasName = Boolean((call.payload as { original_filename?: string } | undefined)?.original_filename);
+      return hasName
+        ? ({
+            data: null,
+            error: { message: "Could not find the 'original_filename' column of 'tracks' in the schema cache" }
+          } as MockResult)
+        : ok(null);
+    });
+    const { POST } = await import("@/app/api/releases/tracks/route");
+
+    const res = await POST(post("/api/releases/tracks", { ...track, originalFilename: "mix.wav" }));
+
+    expect(res.status).toBe(200);
+    const upserts = db.calls.filter((c) => c.table === "tracks" && c.op === "upsert");
+    expect(upserts).toHaveLength(2);
+    expect(upserts[1]?.payload).not.toHaveProperty("original_filename");
+  });
+
   it("403 для чужого релиза и 409 для отправленного", async () => {
     const { POST, DELETE } = await import("@/app/api/releases/tracks/route");
 

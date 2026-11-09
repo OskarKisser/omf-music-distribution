@@ -158,6 +158,8 @@ export type ReleaseTrackRow = {
   explicit: boolean;
   /** Публичный URL аудио (в SQL колонка `file_path`). */
   file_path: string | null;
+  /** Имя WAV на устройстве клиента; у старых треков null. */
+  original_filename?: string | null;
   /** Текст песни (из шага «Треки»). */
   lyrics?: string | null;
   duration?: number | null;

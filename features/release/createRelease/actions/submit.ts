@@ -132,7 +132,8 @@ export async function submitTracksAndFinalize(args: {
               title: track.title,
               explicit: Boolean(track.explicit),
               audioUrl,
-              lyrics: track.lyrics
+              lyrics: track.lyrics,
+              originalFilename: file.name
             }),
             SUPABASE_DB_OP_TIMEOUT_MS,
             USER_REQUEST_TIMEOUT_MESSAGE

@@ -8,6 +8,7 @@ import {
   rejectIfLocked
 } from "@/lib/api/release-owner-route";
 import { formatErrorMessage } from "@/lib/errors";
+import { sanitizeTrackFilename } from "@/lib/track-filename";
 
 export const runtime = "nodejs";
 
@@ -18,7 +19,9 @@ const upsertSchema = z.object({
   explicit: z.boolean(),
   /** Публичный URL после загрузки в Storage — колонка `file_path`. */
   audioUrl: z.string().url().max(2048),
-  lyrics: z.string().max(32000).nullable().optional()
+  lyrics: z.string().max(32000).nullable().optional(),
+  /** Имя файла у клиента. Нет при синхронизации без файла — тогда сохранённое имя не трогаем. */
+  originalFilename: z.string().max(1024).nullable().optional()
 });
 
 const deleteSchema = z.object({ releaseId: z.string().uuid() });
@@ -41,21 +44,32 @@ async function handleUpsertTrack(request: NextRequest): Promise<Response> {
 
   const lyrics = input.lyrics == null || input.lyrics.trim() === "" ? null : input.lyrics.trim();
   const ownerUserId = Number(row.user_id);
+  const originalFilename = sanitizeTrackFilename(input.originalFilename);
 
-  const { error } = await admin.from("tracks").upsert(
-    {
-      release_id: input.releaseId,
-      user_id: Number.isFinite(ownerUserId) && ownerUserId > 0 ? Math.trunc(ownerUserId) : null,
-      telegram_id: row.telegram_id == null ? null : String(row.telegram_id),
-      user_uuid: typeof row.user_uuid === "string" && row.user_uuid ? row.user_uuid : null,
-      index: input.index,
-      title: input.title,
-      explicit: input.explicit,
-      file_path: input.audioUrl,
-      lyrics
-    },
-    { onConflict: "release_id,index" }
-  );
+  const trackRow = {
+    release_id: input.releaseId,
+    user_id: Number.isFinite(ownerUserId) && ownerUserId > 0 ? Math.trunc(ownerUserId) : null,
+    telegram_id: row.telegram_id == null ? null : String(row.telegram_id),
+    user_uuid: typeof row.user_uuid === "string" && row.user_uuid ? row.user_uuid : null,
+    index: input.index,
+    title: input.title,
+    explicit: input.explicit,
+    file_path: input.audioUrl,
+    lyrics
+  };
+  const upsertOptions = { onConflict: "release_id,index" };
+
+  let { error } = await admin
+    .from("tracks")
+    .upsert(
+      originalFilename ? { ...trackRow, original_filename: originalFilename } : trackRow,
+      upsertOptions
+    );
+  // Имя файла необязательно: в базе без миграции original_filename трек всё равно должен сохраниться.
+  if (error && originalFilename && error.message.includes("original_filename")) {
+    console.warn("[releases/tracks POST] original_filename не сохранён:", error.message);
+    ({ error } = await admin.from("tracks").upsert(trackRow, upsertOptions));
+  }
   if (error) {
     console.error("[releases/tracks POST] upsert:", error.message);
     return jsonError(500, formatErrorMessage(error, "Не удалось сохранить трек."));
