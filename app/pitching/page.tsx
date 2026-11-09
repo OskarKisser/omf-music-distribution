@@ -1,12 +1,14 @@
 "use client";
 
 import { Suspense, useMemo, useState } from "react";
+import Link from "next/link";
 import useSWR from "swr";
 import { AuthGuard } from "@/components/AuthGuard";
 import { PitchingReleaseCard } from "@/components/PitchingReleaseCard";
 import { PullRefreshBrand } from "@/components/PullRefreshBrand";
 import { ScreenHeader } from "@/components/ScreenHeader";
 import { LibraryReleaseSkeletonGrid } from "@/components/ui/LibrarySkeleton";
+import { EmptyShelf } from "@/components/ui/EmptyShelf";
 import { fetchPressKits } from "@/features/pitching/api";
 import { useReleases } from "@/lib/hooks/useReleases";
 import { isPitchingOpen, type PressKit } from "@/lib/press-kit";
@@ -62,13 +64,17 @@ function PitchingPageInner() {
       {showSkeleton ? (
         <LibraryReleaseSkeletonGrid count={3} variant="rows" />
       ) : open.length === 0 ? (
-        <div className="border-t border-omf-line pt-6">
-          <p className="text-[18px] font-bold tracking-tight">Пока нечего питчить</p>
-          <p className="mt-1.5 text-[14px] leading-relaxed text-omf-graphite">
-            Релиз появится здесь, когда модератор его выпустит и пришлёт ссылку BandLink. Тогда можно будет
-            заполнить пресс-релиз.
-          </p>
-        </div>
+        <EmptyShelf
+          sticker="питчинг"
+          title="Пока нечего питчить"
+          text="Релиз появится здесь, когда модератор его выпустит и пришлёт ссылку BandLink."
+          steps={["Дождись выхода релиза и ссылки", "Заполни пресс-релиз: пара предложений и фото", "Мы покажем трек редакторам площадок"]}
+          action={
+            <Link href="/library" className="omf-btn-secondary w-full">
+              К моим релизам
+            </Link>
+          }
+        />
       ) : (
         <div className="flex flex-col gap-2">
           {open.map((r) => (

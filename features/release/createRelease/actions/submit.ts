@@ -1,4 +1,5 @@
-import { formatErrorMessage, getPostgrestErrorPayload, USER_REQUEST_TIMEOUT_MESSAGE } from "@/lib/errors";
+import { getPostgrestErrorPayload, USER_REQUEST_TIMEOUT_MESSAGE } from "@/lib/errors";
+import { userSubmitErrorText, userUploadErrorText } from "@/lib/upload-error-text";
 import { withRequestTimeout } from "@/lib/withRequestTimeout";
 import { getUploadErrorDetails, logClientError } from "@/lib/logger";
 import { hapticMap } from "@/lib/haptic-map";
@@ -176,10 +177,8 @@ export async function submitTracksAndFinalize(args: {
         });
       }
       let cleanupFailed = false;
-      let existingMessage: string | null = null;
       try {
         const current = await getReleaseById(releaseId).catch(() => null);
-        existingMessage = current?.error_message?.trim() ?? null;
 
         if (!skipWavUpload) {
           await cleanupReleaseTracks(releaseId);
@@ -203,31 +202,21 @@ export async function submitTracksAndFinalize(args: {
       trackFunnel("submit_error", { releaseId: useCreateReleaseDraftStore.getState().releaseId, step: "upload" });
       useCreateReleaseDraftStore.getState().setSubmitStatus("error");
       useCreateReleaseDraftStore.getState().setSubmitStage("error");
-      const detail = e instanceof Error ? e.message : JSON.stringify(e);
-
-      const defaultMessage =
-        uploadPhase === "storage_track_wav"
-          ? formatErrorMessage(
-              e,
-              "Не удалось загрузить WAV в хранилище. Проверьте политику bucket «releases», размер и формат файла."
-            )
-          : uploadPhase === "db_release_track"
-            ? formatErrorMessage(
-                e,
-                "Файл в хранилище загружен, но не удалось сохранить строку в таблице tracks. Проверьте схему БД и RLS."
-              )
-            : `Ошибка отправки: ${detail}`;
-
       const primary =
-        existingMessage && existingMessage.length > 0
-          ? existingMessage
-          : defaultMessage;
+        uploadPhase === "storage_track_wav"
+          ? userUploadErrorText(e, "storage")
+          : uploadPhase === "db_release_track"
+            ? userUploadErrorText(e, "database")
+            : userSubmitErrorText(e);
 
-      useCreateReleaseDraftStore.getState().setSubmitError(
-        cleanupFailed
-          ? `${primary}. Автоочистка завершилась с ошибкой — обратитесь к администратору.`
-          : `${primary}. Временные файлы очищены, можно повторить отправку.`
-      );
+      // Что стало с уже загруженными файлами: при повторе они либо грузятся заново, либо остались на месте.
+      const aftermath = skipWavUpload
+        ? ""
+        : cleanupFailed
+          ? " Если повторная отправка не пройдёт, напиши в поддержку."
+          : " При повторе треки загрузятся заново.";
+
+      useCreateReleaseDraftStore.getState().setSubmitError(`${primary}${aftermath}`);
       return false;
     }
 
@@ -336,12 +325,7 @@ export async function submitTracksAndFinalize(args: {
       trackFunnel("submit_error", { releaseId: storeFail.releaseId, step: "finalize" });
       storeFail.setSubmitStatus("error");
       storeFail.setSubmitStage("error");
-      const detail = e instanceof Error ? e.message : JSON.stringify(e);
-      storeFail.setSubmitError(
-        detail.includes("Не удалось отправить релиз на модерацию")
-          ? detail
-          : `Ошибка отправки: ${detail}`
-      );
+      storeFail.setSubmitError(userSubmitErrorText(e));
       return false;
     }
   } finally {

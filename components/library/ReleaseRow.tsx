@@ -17,18 +17,21 @@ export type ReleaseRowProps = {
   busy?: boolean;
   /** Решение модератора, которое ещё не открывали. */
   isNew?: boolean;
+  /** Порядок в списке: строки появляются каскадом. */
+  index?: number;
   onClick: () => void;
 };
 
 /** Строка библиотеки: обложка, название, статус словом и кольцо пройденного пути. */
-export function ReleaseRow({ id, title, artist, coverUrl, kind, statusLine, priority, busy, isNew, onClick }: ReleaseRowProps) {
+export function ReleaseRow({ id, title, artist, coverUrl, kind, statusLine, priority, busy, isNew, index = 0, onClick }: ReleaseRowProps) {
   return (
     <button
       type="button"
       onClick={onClick}
       disabled={busy}
+      style={{ ["--i" as string]: index }}
       className={cn(
-        "omf-focus -mx-2 grid w-[calc(100%+16px)] grid-cols-[60px_1fr_44px] items-center gap-3.5 rounded-[14px] px-2 py-2 text-left transition-[transform,background-color] duration-150 hover:bg-omf-surface active:scale-[0.98] active:bg-omf-surface",
+        "omf-rise omf-focus -mx-2 grid w-[calc(100%+16px)] grid-cols-[60px_1fr_44px] items-center gap-3.5 rounded-[14px] px-2 py-2 text-left transition-[transform,background-color] duration-150 hover:bg-omf-surface active:scale-[0.98] active:bg-omf-surface",
         busy && "opacity-60"
       )}
     >

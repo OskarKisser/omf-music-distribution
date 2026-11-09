@@ -23,14 +23,15 @@ export function Skeleton({ className, ...props }: SkeletonProps) {
 export function LibraryReleaseRowSkeleton() {
   return (
     <div
-      className="flex min-h-[72px] w-full items-center gap-3 border-b border-omf-line py-3"
+      className="flex w-full items-center gap-3.5 py-2"
       aria-hidden
     >
-      <Skeleton className="h-14 w-14 shrink-0 rounded-sleeve" />
+      <Skeleton className="h-[60px] w-[60px] shrink-0 rounded-sleeve" />
       <div className="min-w-0 flex-1 space-y-2">
         <Skeleton className="h-4 w-[70%] max-w-[220px]" />
         <Skeleton className="h-3 w-[40%] max-w-[120px]" />
       </div>
+      <Skeleton className="h-11 w-11 shrink-0 rounded-full" />
     </div>
   );
 }

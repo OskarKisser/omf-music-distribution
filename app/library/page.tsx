@@ -399,6 +399,7 @@ function LibraryPageInner() {
           className: NEXT_STEP_TONE_CLASS[nextStep.tone]
         }}
         priority={listIndex < 6}
+        index={listIndex}
         busy={isDraft && resumingId === release.id}
         isNew={isUnseenDecision(normalized, seenStatuses[release.id])}
         onClick={() => openRelease(release)}
@@ -495,7 +496,11 @@ function LibraryPageInner() {
         </header>
         )}
 
-        {!hasReleases && (showAuthWait || showListSkeleton) ? (
+        {!hasReleases && showListSkeleton && !showAuthWait ? (
+          <div aria-busy="true" aria-label="Загружаем релизы">
+            <LibraryReleaseSkeletonGrid count={5} variant="rows" />
+          </div>
+        ) : !hasReleases && showAuthWait ? (
           <FullScreenLoader
             state="connecting"
             label={
@@ -532,7 +537,7 @@ function LibraryPageInner() {
           <>
             {releases.length >= STATUS_FILTER_MIN_RELEASES && error == null && selectedView === "all" && (
               <div
-                className="mb-6 flex gap-1 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+                className="omf-fade-right -mr-1 mb-6 flex gap-1 overflow-x-auto pr-8 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
                 role="tablist"
                 aria-label="Фильтр по статусу"
               >
@@ -571,7 +576,10 @@ function LibraryPageInner() {
               <p className="mb-6 text-[14px] text-omf-graphite">Здесь пока пусто.</p>
             )}
 
-            <div className={cn("flex flex-col gap-1", isWeb && "sm:grid sm:grid-cols-2 sm:gap-x-6 sm:gap-y-1")}>
+            <div
+              key={statusFilter}
+              className={cn("flex flex-col gap-1", isWeb && "sm:grid sm:grid-cols-2 sm:gap-x-6 sm:gap-y-1")}
+            >
               {filteredReleases.map((release, i) => renderReleaseRow(release, i))}
             </div>
 
@@ -587,14 +595,14 @@ function LibraryPageInner() {
       {adminNotesModal && (
         <div
           key="admin-notes-modal"
-          className="fixed inset-0 z-[100] flex items-end justify-center bg-black/60 p-4 sm:items-center"
+          className="omf-backdrop-in fixed inset-0 z-[100] flex items-end justify-center bg-black/60 p-4 sm:items-center"
           onClick={() => setAdminNotesModal(null)}
         >
           <div
             role="dialog"
             aria-modal="true"
             aria-labelledby="admin-notes-title"
-            className="w-full max-w-[420px] rounded-[20px] border border-omf-line bg-omf-surface p-5"
+            className="omf-sheet-in w-full max-w-[420px] rounded-[20px] border border-omf-line bg-omf-surface p-5"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex items-start justify-between gap-3">

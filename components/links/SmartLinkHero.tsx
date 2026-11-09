@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { Copy, QrCode, Send } from "lucide-react";
+import { Check, Copy, QrCode, Send } from "lucide-react";
 import QRCode from "qrcode";
 import { toast } from "sonner";
 import { ReleaseSleeve } from "@/components/ReleaseSleeve";
@@ -41,6 +41,7 @@ export function SmartLinkHero({ releaseId, title, artist, smartLink, coverUrl, r
   const [qrOpen, setQrOpen] = useState(false);
   const [qrSrc, setQrSrc] = useState<string | null>(null);
   const closeQr = useCallback(() => setQrOpen(false), []);
+  const [copied, setCopied] = useState(false);
 
   useEffect(() => {
     if (!qrOpen || qrSrc) return;
@@ -61,7 +62,8 @@ export function SmartLinkHero({ releaseId, title, artist, smartLink, coverUrl, r
     try {
       await navigator.clipboard.writeText(smartLink.trim());
       hapticMap.notificationSuccess();
-      toast.success("Ссылка скопирована");
+      setCopied(true);
+      window.setTimeout(() => setCopied(false), 1600);
     } catch {
       toast.error("Не получилось скопировать. Открой ссылку и скопируй адрес из браузера.");
     }
@@ -72,7 +74,7 @@ export function SmartLinkHero({ releaseId, title, artist, smartLink, coverUrl, r
     .join(" · ");
 
   return (
-    <section aria-label={`Ссылка на «${title}»`} className="mb-8">
+    <section aria-label={`Ссылка на «${title}»`} className="omf-rise mb-8">
       <button
         type="button"
         onClick={() => {
@@ -99,10 +101,20 @@ export function SmartLinkHero({ releaseId, title, artist, smartLink, coverUrl, r
         <button
           type="button"
           onClick={() => void copy()}
-          className="omf-focus flex h-10 shrink-0 items-center gap-1.5 rounded-[10px] bg-omf-surface-2 px-3.5 text-[14px] text-omf-ink transition-transform active:scale-95"
+          aria-live="polite"
+          className="omf-focus flex h-10 min-w-[124px] shrink-0 items-center justify-center gap-1.5 rounded-[10px] bg-omf-surface-2 px-3.5 text-[14px] text-omf-ink transition-transform active:scale-95"
         >
-          <Copy className="h-4 w-4" aria-hidden />
-          Копировать
+          {copied ? (
+            <>
+              <Check key="ok" className="omf-pop h-4 w-4 text-omf-green" aria-hidden />
+              Готово
+            </>
+          ) : (
+            <>
+              <Copy className="h-4 w-4" aria-hidden />
+              Копировать
+            </>
+          )}
         </button>
       </div>
 
