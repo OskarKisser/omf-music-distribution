@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { kickWidgets } from "@/lib/widgets/service";
 import type { NextRequest } from "next/server";
 import { z } from "zod";
 import { requireAdminSupabaseClient } from "@/lib/admin-release-api-guard";
@@ -86,6 +87,7 @@ async function handleReleasePayment(request: NextRequest): Promise<Response> {
 
   const set = await setReleasePaymentStatus(guard.supabase, releaseId, action, "admin");
   if (!set.ok) return NextResponse.json({ ok: false, error: set.error }, { status: set.status });
+  await kickWidgets();
   return NextResponse.json({ ok: true, release: set.release });
 }
 
