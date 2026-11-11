@@ -1,0 +1,218 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Мои релизы</title>
+<link rel="stylesheet" href="harness.css">
+</head>
+<body>
+<div class="page">
+  <div class="phone"><div class="screen">
+    <div class="bar">omf<small>бот</small></div>
+    <div class="chat">
+      <div class="bubble" id="bubble">
+        <div id="bubble-body"></div>
+        <div class="cap" id="caption"></div>
+        <span class="time" id="time">14:37</span>
+      </div>
+    </div>
+  </div></div>
+  <div class="side">
+    <h1 id="title"></h1>
+    <div class="ctl">
+      <select id="scn"></select>
+      <button id="theme">Тёмная тема</button>
+      <button id="push">Бот обновил данные</button>
+      <label><input type="checkbox" id="cap" checked> подпись</label>
+    </div>
+    <div id="warn" hidden></div>
+    <ul class="metrics">
+      <li data-name="высота"><span>Высота</span><span id="m-h"></span></li>
+      <li data-name="состояние"><span>chat_data</span><span id="m-state"></span></li>
+      <li data-name="запрос"><span>Последний запрос</span><span id="m-req">—</span></li>
+      <li data-name="ответ"><span>Последний ответ</span><span id="m-ans">—</span></li>
+      <li data-name="HTML"><span>HTML (мин.)</span><span id="m-html"></span></li>
+      <li data-name="zlib"><span>zlib ≈</span><span id="m-zlib"></span></li>
+      <li data-name="запрещённое"><span>Запрещённое</span><span id="m-ban"></span></li>
+      <li data-name="префикс"><span>Префикс запросов</span><span id="m-pref"></span></li>
+    </ul>
+    <ul id="log"></ul>
+  </div>
+</div>
+
+<!-- КОД КАРТОЧКИ: этот же текст бот шлёт в sendWidget (lib/widgets/html/releases.html). -->
+<template id="widget"><style>
+*{box-sizing:border-box}body{margin:0}
+#r{padding:10px 10px calc(10px + env(safe-area-inset-bottom))}
+button{font:inherit;color:inherit;background:none;border:0;padding:0;text-align:left;cursor:pointer}
+.hd{display:flex;align-items:center;gap:9px;padding:2px 4px 10px}
+.ic{width:26px;height:26px;border-radius:8px;display:grid;place-items:center;background:linear-gradient(140deg,var(--tg-theme-accent-text-color),var(--tg-theme-button-color))}
+.ic svg{width:16px;fill:none;stroke:#fff;stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round}
+.lb{flex:1;font-size:14px;font-weight:700;letter-spacing:.06em;text-transform:uppercase}
+.lb,.h,.lv{color:var(--tg-theme-hint-color)}
+.lv{font-size:14px}
+.lv:before{content:"";display:inline-block;width:7px;height:7px;border-radius:50%;background:var(--tg-theme-accent-text-color);margin-right:7px;vertical-align:1px}
+.k{display:block;width:100%;background:var(--tg-theme-secondary-bg-color);border-radius:18px;padding:12px 14px}
+.u{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px}
+.tb{display:flex;padding:2px;border-radius:11px;margin-bottom:12px;background:color-mix(in srgb,var(--tg-theme-hint-color) 15%,transparent)}
+.tb button{flex:1;text-align:center;padding:6px 0;border-radius:9px;font-size:14px;font-weight:600;color:var(--tg-theme-hint-color)}
+.tb .on{background:var(--tg-theme-bg-color);color:var(--tg-theme-text-color)}
+.hr{display:flex;justify-content:space-between;gap:8px}
+.big{font-size:40px;line-height:44px;font-weight:800;letter-spacing:-1px}
+.big small{font-size:19px;letter-spacing:0;margin-left:7px}
+.mid{font-size:26px;line-height:32px;font-weight:800}
+.h{font-size:13px}
+.pl{display:inline-block;flex:none;align-self:flex-start;margin-top:8px;padding:3px 9px;border-radius:9px;font-size:13px;font-weight:700;color:var(--tg-theme-accent-text-color);background:color-mix(in srgb,currentColor 16%,transparent)}
+.w{display:flex;align-items:center;gap:10px;width:100%;min-height:46px}
+.m{flex:1;min-width:0}
+.t{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.b{font-weight:600}
+.s{font-size:13px}
+.sg{flex:none;display:flex;gap:2px;width:58px}
+.sg i{flex:1;height:6px;border-radius:3px;background:color-mix(in srgb,var(--tg-theme-hint-color) 25%,transparent)}
+.sg .on{background:var(--tg-theme-accent-text-color)}
+.j{width:100%;margin-top:8px}.j i{height:7px}
+.tp,.tx,.pl.bad{color:var(--tg-theme-destructive-text-color)}.sg .bad{background:var(--tg-theme-destructive-text-color)}
+.tw,.tm{color:var(--tg-theme-hint-color)}.td{color:var(--tg-theme-accent-text-color)}.ta{color:var(--tg-theme-text-color);font-weight:600}
+.jl{display:flex;justify-content:space-between;font-size:11px;color:var(--tg-theme-hint-color);margin-top:3px}
+.g{display:flex;justify-content:space-between;align-items:center;margin-top:6px}
+.g button,.lk{color:var(--tg-theme-link-color);padding:4px 0}
+.g button:disabled{opacity:.3}
+.q{opacity:.5}
+.c{display:flex;gap:12px;align-items:center;margin-top:8px}
+.cv{flex:none;width:56px;height:56px;border-radius:14px;display:grid;place-items:center;font-size:24px;font-weight:800;color:#fff;background:linear-gradient(140deg,var(--tg-theme-accent-text-color),var(--tg-theme-button-color))}
+.n{font-size:19px;font-weight:700;line-height:23px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.x{font-size:14px;margin-top:8px}
+.bt{display:block;width:100%;margin-top:12px;padding:12px;border-radius:12px;text-align:center;font-weight:600;background:var(--tg-theme-button-color);color:var(--tg-theme-button-text-color)}
+.e{text-align:center;padding:12px 0}
+.o{font-size:13px;margin:8px 4px 0}
+</style>
+<div id="r"></div>
+<script>
+const W=window.TelegramWidget,A="%APP%",R=document.getElementById("r")
+const L=["Допиши и отправь","Осталось отправить","Исправь замечания","На проверке","Проверка затянулась","Ссылка готова","Ссылка через 3–5 дн","Обновляем на площадках","Удалён с площадок","Статус уточняется"],T="aapwxddxmm",G=[0,0,1,1,1,3,2,3,-1,-1]
+const J=["Отправка","Проверка","Площадки","Ссылка","Выход"],F=[["a","Все"],["m","Ждут меня"],["d","Готовы"]]
+const IC='<span class="ic"><svg viewBox="0 0 24 24"><path d="M9 18V5l11-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="17" cy="16" r="3"/></svg></span>'
+let s=[0,0,0,0,0,0,[]],f="a",pg={o:0,n:0,r:[]},sk=[],cur=null,busy=0,err=""
+const e=x=>String(x??"").replace(/[&<>"]/g,c=>"&#"+c.charCodeAt(0)+";")
+const H=()=>{try{W.HapticFeedback.impactOccurred("light")}catch(_){}}
+const ln=(k,h)=>k==3&&h!=null?"На проверке "+(h<1?"меньше часа":h<24?h+" ч":Math.floor(h/24)+" дн"):L[k]
+const pl=(n,w)=>w[n%10==1&&n%100!=11?0:n%10>=2&&n%10<=4&&(n%100<12||n%100>14)?1:2]
+const tm=m=>String(m/60|0).padStart(2,"0")+":"+String(m%60).padStart(2,"0")
+const sg=(k,c="")=>`<span class="sg${c}">${J.map((_,i)=>`<i class="${i<G[k]?"on":i==G[k]?(/[px]/.test(T[k])?"bad":"on"):""}"></i>`).join("")}</span>`
+function load(){try{const x=JSON.parse(W.chatData);if(x)s=x}catch(_){}
+if(f=="a"&&!sk.length)pg={o:0,n:s[0],r:s[6]}}
+function list(){const n=s[0],a=s[1]+s[2],end=pg.o+pg.r.length,x=s[4]
+if(!n)return`<div class="k e"><div class="mid">Пока пусто</div><div class="h">Загрузи первый релиз — здесь будет видно, где он</div><button class="bt" data-a="x">Загрузить релиз</button></div>`
+return`<div class="k"><div class="tb">${F.map(t=>`<button data-a="f" data-v="${t[0]}"${t[0]==f?' class="on"':""}>${t[1]}</button>`).join("")}</div><div class="hr"><div><div class="big">${n}<small>${pl(n,["релиз","релиза","релизов"])}</small></div><div class="h">${a?"ждут тебя: "+a:"всё идёт по плану"}</div></div>${s[1]?`<span class="pl bad">вернули ${s[1]}</span>`:s[2]?`<span class="pl">не отправлено ${s[2]}</span>`:""}</div><div style="margin-top:6px">${pg.r.length?pg.r.map(w=>`<button class="w" data-a="o" data-v="${e(w[0])}"><span class="m"><span class="t b">${e(w[1])}</span><span class="s t${T[w[2]]}">${e(ln(w[2],w[3]))}</span></span>${sg(w[2])}</button>`).join(""):`<div class="e h">Здесь пусто</div>`}</div>${pg.n>end||pg.o?`<div class="g"><button data-a="p"${pg.o?"":" disabled"}>‹ Назад</button><span class="h">${pg.o+1}–${end} из ${pg.n}</span><button data-a="n"${pg.n>end?"":" disabled"}>Дальше ›</button></div>`:""}</div><div class="u"><div class="k"><div class="h">Ближайший выход</div><div class="mid">${x?e(x[0]):"—"}</div><div class="h t">${x?e(x[1]):"дат пока нет"}</div></div><div class="k"><div class="h">Ссылки</div><div class="mid">${s[3]}</div><div class="h">готово из ${n}</div></div></div>`}
+function card(d){const k=d[4]
+return`<div class="k"><button class="lk" data-a="b">‹ Все релизы</button><div class="c"><div class="cv">${e([...d[1]][0]||"♪")}</div><div class="m"><div class="n">${e(d[1])}</div><div class="h t">${e(d[2])} · ${e(d[3])}</div></div></div><div class="t${T[k]}" style="margin-top:12px;font-size:17px;font-weight:700">${e(d[7])}</div>${G[k]<0?"":sg(k," j")+`<div class="jl">${J.map(x=>`<span>${x}</span>`).join("")}</div>`}${d[6]?`<span class="pl">Выход ${e(d[6])}</span>`:""}<div class="x">${e(d[8])}</div><button class="bt" data-a="x" data-v="${e(d[0])}">Открыть в приложении</button></div>`}
+function draw(){R.innerHTML=`<div class="hd">${IC}<span class="lb">Мои релизы</span><span class="lv">${tm(s[5])}</span></div>`+(cur?card(cur):list())+(err?`<div class="o tp">${e(err)}</div>`:"")}
+function ask(q,el){if(busy)return Promise.reject();busy=1;err="";el&&el.classList.add("q")
+return W.request(q).then(r=>{const d=JSON.parse(r.result);if(!d)throw 0;return d}).catch(x=>{err=x&&x.code=="RATE_LIMITED"?"Слишком часто — подожди пару секунд":"Не получилось загрузить, попробуй ещё раз";draw();throw x}).finally(()=>{busy=0})}
+const page=(t,o,el,ok)=>ask("r:p:"+t+":"+o,el).then(p=>{ok();f=t;pg={o:p[0],n:p[1],r:p[2]};draw()},()=>{})
+R.onclick=ev=>{const b=ev.target.closest("[data-a]");if(!b||b.disabled)return;const a=b.dataset.a,v=b.dataset.v;H()
+if(a=="o")ask("r:d:"+v,b).then(d=>{cur=d;draw()},()=>{})
+else if(a=="b"){cur=null;draw()}
+else if(a=="x")W.openTelegramLink(A+(v?"?startapp=r_"+v:""))
+else if(a=="f"){if(v=="a"){f=v;sk=[];load();draw()}else page(v,0,b,()=>{sk=[]})}
+else if(a=="n")page(f,pg.o+pg.r.length,b,()=>sk.push(pg.o))
+else page(f,sk[sk.length-1],b,()=>sk.pop())}
+W.onEvent("chatDataChanged",()=>{load();if(!cur)draw()})
+load();draw();W.ready()
+</script></template>
+
+<script src="harness.js"></script>
+<script>
+/* ---------- Поддельный бот: те же форматы, что lib/widgets/state.ts и queries.ts ---------- */
+const APP = "https://t.me/omf_bot/app";
+document.getElementById("widget").innerHTML = document.getElementById("widget").innerHTML.replace("%APP%", APP);
+
+const BODY = {
+  0: "Релиз ещё не отправлен. Продолжи с того места, где остановился, и отправь на проверку.",
+  1: "Файлы загружены, но релиз ещё не ушёл на проверку. Открой его и нажми «Отправить на проверку».",
+  2: "Модератор вернул релиз: обложка с текстом поверх логотипа площадки. Исправь и отправь снова — файлы уже загружены.",
+  3: "Отправлен 5 ч назад. Модератор проверяет паспорт, обложку и аудио, обычно до 24 часов. Когда будет решение, придёт сообщение сюда.",
+  4: "Релиз на проверке 1 дн, обычно это до 24 часов. Напиши в поддержку в разделе «Помощь» — посмотрим, что случилось.",
+  5: "Релиз прошёл модерацию площадок. Ссылка на пресейв — в приложении: отправляй её слушателям и в соцсети.",
+  6: "Релиз принят и отправлен на площадки. Их модерация обычно занимает 3–5 дней — когда пройдёт, пришлём ссылку на пресейв.",
+  8: "Релиз снят со всех площадок по твоей просьбе. Данные релиза остались в приложении — для истории."
+};
+const TITLE = { 0: "Черновик", 1: "Не отправлен", 2: "Вернули на доработку", 3: "На проверке", 4: "Проверка затянулась", 5: "Ссылка готова", 6: "Принят", 8: "Удалён с площадок" };
+
+function uid(i) { return (0x1a2b3c4d + i * 7919).toString(16).slice(0, 8) + "-0000-4000-8000-00000000000" + (i % 10); }
+const BASE = [
+  ["Ночной город", 3, 5, "Сингл", "20 нояб"],
+  ["Лето без тебя", 5, null, "Сингл", "14 нояб"],
+  ["Пыль", 2, null, "EP", ""],
+  ["Демо 3", 0, null, "Сингл", ""],
+  ["Маяки", 6, null, "Альбом", "1 дек"],
+  ["Старый двор", 8, null, "Сингл", ""],
+  ["Вдох", 1, null, "Сингл", ""]
+];
+function releases(scn) {
+  if (scn === "empty") return [];
+  if (scn === "one") return [BASE[0]];
+  if (scn === "long") {
+    return Array.from({ length: 40 }, (_, i) => [
+      "Очень длинное название релиза номер " + (i + 1) + " — расширенная версия с бонус-треками",
+      [3, 5, 2, 0, 6, 1, 4][i % 7], i % 7 === 0 ? 30 : null, "Альбом", "31 дек"
+    ]);
+  }
+  return BASE;
+}
+const ARTIST = (scn) => (scn === "long" ? "Константин Константинопольский feat. Друзья" : "Север");
+const short = (s, n) => ([...s].length > n ? [...s].slice(0, n - 1).join("") + "…" : s);
+const PAGE = 4;
+const FILTER = { a: () => true, m: (r) => r[1] <= 2, d: (r) => r[1] === 5 || r[1] === 6 };
+const withIdx = (all) => all.map((r, i) => [r, i]);
+function pageRows(list, off, head) {
+  const rows = list.slice(off, off + PAGE).map(([r, i]) => [uid(i).slice(0, 8), short(r[0], 40), r[1], r[2]]);
+  return rows.slice(0, fitRows((rs) => JSON.stringify(head(rs)), rows));
+}
+const nowMin = () => { const d = new Date(); return d.getHours() * 60 + d.getMinutes(); };
+function state(all) {
+  const fx = all.filter((r) => r[1] === 2).length;
+  const un = all.filter((r) => r[1] <= 1).length;
+  const lk = all.filter((r) => r[1] === 5).length;
+  const nx = all.find((r) => r[4] && r[1] >= 5 && r[1] <= 7);
+  const head = (rs) => [all.length, fx, un, lk, nx ? [nx[4], short(nx[0], 28)] : 0, nowMin(), rs];
+  return JSON.stringify(head(pageRows(withIdx(all), 0, head)));
+}
+
+const MOCK = {
+  title: "Мои релизы — карточка артиста",
+  prefix: "r",
+  scenarios: { normal: "7 релизов", one: "Один на проверке", empty: "Пусто", long: "40 длинных" },
+  chatData: (scn) => state(releases(scn)),
+  nextChatData(scn) {
+    // Модератор принял «Ночной город»: 3 → 6.
+    BASE[0] = ["Ночной город", 6, null, "Сингл", "20 нояб"];
+    return state(releases(scn));
+  },
+  caption(scn) {
+    const all = releases(scn);
+    if (!all.length) return "Мои релизы — пока пусто. Загрузи первый релиз в приложении.";
+    const r = all[0];
+    return `Мои релизы (${all.length}): «${short(r[0], 40)}» — ${TITLE[r[1]].toLowerCase()}`;
+  },
+  answer(data, scn) {
+    const all = releases(scn);
+    let m = /^r:p:([amd]):(\d+)$/.exec(data);
+    if (m) {
+      const list = withIdx(all).filter(([r]) => FILTER[m[1]](r));
+      const off = Math.min(Number(m[2]), list.length);
+      const head = (rs) => [off, list.length, rs];
+      return JSON.stringify(head(pageRows(list, off, head)));
+    }
+    m = /^r:d:([0-9a-f]{8})$/.exec(data);
+    if (!m) return "0";
+    const i = all.findIndex((_, j) => uid(j).startsWith(m[1]));
+    if (i < 0) return "0";
+    const r = all[i];
+    return JSON.stringify([uid(i), short(r[0], 60), short(ARTIST(scn), 40), r[3], r[1], r[2], r[4], TITLE[r[1]], BODY[r[1]]]);
+  }
+};
+</script>
+</body>
+</html>

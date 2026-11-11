@@ -1,6 +1,7 @@
 /**
  * Входящие обновления бота (setWebhook, см. scripts/telegram-webhook.mjs).
- * Обрабатываем нажатия кнопок «Оплатил / Не оплатил / Не мой клиент» и «Выплатил» (бонус за приглашение).
+ * Обрабатываем нажатия кнопок «Оплатил / Не оплатил / Не мой клиент» и «Выплатил» (бонус за приглашение),
+ * команды /releases и /today и запросы из карточек (widget_query, см. lib/widgets).
  * Telegram ставит заголовок X-Telegram-Bot-Api-Secret-Token = secret_token из setWebhook.
  */
 import crypto from "node:crypto";
@@ -8,6 +9,7 @@ import { NextResponse } from "next/server";
 import { createSupabaseAdmin } from "@/lib/supabase-admin";
 import { handlePaymentCallback, type TelegramCallbackQuery } from "@/lib/server/payment-confirm";
 import { handleReferralCallback } from "@/lib/server/referrals";
+import { extractWidgetQuery, handleWidgetCommand, handleWidgetQuery, type TelegramMessage } from "@/lib/widgets/bot";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -30,10 +32,27 @@ export async function POST(request: Request): Promise<Response> {
     return NextResponse.json({ ok: false }, { status: 401 });
   }
 
-  let update: { callback_query?: TelegramCallbackQuery } = {};
+  let update: { callback_query?: TelegramCallbackQuery; message?: TelegramMessage } = {};
   try {
     update = (await request.json()) as typeof update;
   } catch {
+    return NextResponse.json({ ok: true });
+  }
+
+  // Карточки: запрос из карточки (widget_query — берём из сырого апдейта) и команды /releases, /today.
+  const widgetQuery = extractWidgetQuery(update);
+  if (widgetQuery || update.message) {
+    const admin = createSupabaseAdmin();
+    if (!admin) {
+      console.error("[telegram/webhook] missing Supabase service role");
+      return NextResponse.json({ ok: true });
+    }
+    try {
+      if (widgetQuery) await handleWidgetQuery(admin, widgetQuery);
+      else if (update.message) await handleWidgetCommand(admin, update.message);
+    } catch (e) {
+      console.error("[telegram/webhook] widgets:", e);
+    }
     return NextResponse.json({ ok: true });
   }
 

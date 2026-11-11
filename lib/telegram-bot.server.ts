@@ -32,12 +32,16 @@ export type SendTelegramBotMessageResult =
 
 const BOT_API_TIMEOUT_MS = 8000;
 
-/** POST в Bot API. Requires TELEGRAM_BOT_TOKEN on the server. Ошибки возвращаются, не бросаются. */
-async function callBotApi(
+export type BotApiResult<T> =
+  | { ok: true; result: T }
+  | { ok: false; error: string; code?: number };
+
+/** POST в Bot API с результатом метода. Ошибки возвращаются, не бросаются. */
+export async function callBotApiResult<T = unknown>(
   method: string,
   payload: Record<string, unknown>,
   timeoutMs = BOT_API_TIMEOUT_MS
-): Promise<SendTelegramBotMessageResult> {
+): Promise<BotApiResult<T>> {
   const token = process.env.TELEGRAM_BOT_TOKEN;
   if (!token) {
     return { ok: false, error: "TELEGRAM_BOT_TOKEN is not set" };
@@ -54,20 +58,31 @@ async function callBotApi(
       signal: AbortSignal.timeout(timeoutMs)
     });
 
-    const data = (await res.json()) as { ok?: boolean; description?: string };
+    const data = (await res.json()) as { ok?: boolean; description?: string; error_code?: number; result?: T };
 
     if (!data.ok) {
       return {
         ok: false,
-        error: data.description ?? `Telegram API HTTP ${res.status}`
+        error: data.description ?? `Telegram API HTTP ${res.status}`,
+        code: data.error_code ?? res.status
       };
     }
 
-    return { ok: true };
+    return { ok: true, result: data.result as T };
   } catch (e) {
     const message = e instanceof Error ? e.message : String(e);
     return { ok: false, error: message };
   }
+}
+
+/** POST в Bot API. Requires TELEGRAM_BOT_TOKEN on the server. Ошибки возвращаются, не бросаются. */
+async function callBotApi(
+  method: string,
+  payload: Record<string, unknown>,
+  timeoutMs = BOT_API_TIMEOUT_MS
+): Promise<SendTelegramBotMessageResult> {
+  const r = await callBotApiResult(method, payload, timeoutMs);
+  return r.ok ? { ok: true } : { ok: false, error: r.error };
 }
 
 /**

@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 /**
- * Подключает бота к /api/telegram/webhook (кнопки «Оплатил / Не оплатил / Не мой клиент»).
+ * Подключает бота к /api/telegram/webhook: кнопки «Оплатил / Не оплатил / Не мой клиент»,
+ * команды /releases и /today, запросы из карточек (widget_query).
  *
  *   node --env-file=.env.local scripts/telegram-webhook.mjs          — показать, куда сейчас смотрит бот
  *   node --env-file=.env.local scripts/telegram-webhook.mjs --set    — подключить наш вебхук
@@ -56,6 +57,7 @@ if (info.url && info.url !== target && !args.has("--force")) {
 await call("setWebhook", {
   url: target,
   secret_token: secret,
-  allowed_updates: ["callback_query"]
+  // widget_query надо перечислить явно: без него Telegram не присылает запросы из карточек.
+  allowed_updates: ["callback_query", "message", "widget_query"]
 });
-console.log("Готово, бот шлёт нажатия кнопок на", target);
+console.log("Готово, бот шлёт кнопки, команды и запросы карточек на", target);

@@ -11,7 +11,8 @@ import {
 import { formatErrorMessage } from "@/lib/errors";
 import { escapeHtml } from "@/lib/telegram-bot.server";
 import { notifyAdminReleaseSubmitted } from "@/lib/admin-notify.server";
-import { notifyArtist } from "@/lib/server/artist-notify";
+import { artistTelegramId, notifyArtist } from "@/lib/server/artist-notify";
+import { sendWidgetCard } from "@/lib/widgets/service";
 import { invalidateMyReleasesCache } from "@/lib/server/release-list-cache";
 import { getReleaseDisplayTitle, type ReleaseRecord } from "@/repositories/releases.repo";
 import { runAiMetadataPrecheckForRelease } from "@/lib/release-ai-moderation.server";
@@ -38,6 +39,9 @@ async function notifyReleaseSubmittedForModeration(
     `🚀 <b>Ваш релиз «${title}» отправлен на модерацию!</b>\n\n` +
     `Мы проверим его в течение 24 часов и пришлем уведомление здесь.`;
   await notifyArtist(record, text);
+  // Карточка «Мои релизы» — живой статус рядом с текстом; текст остаётся для компьютера и уведомлений.
+  const tid = artistTelegramId(record);
+  if (tid) await sendWidgetCard(admin, "releases", tid, { silent: true });
   // Вопрос студии об оплате — вспомогательный: его сбой не должен ломать отправку релиза.
   try {
     await requestPaymentConfirmationOnSubmit(admin, record);

@@ -17,6 +17,7 @@ import {
 import { getReleaseDisplayTitle, type ReleaseRecord } from "@/repositories/releases/types";
 import { artistTelegramId, notifyArtist } from "@/lib/server/artist-notify";
 import { applyReferralPaymentChange, referralPaymentLines } from "@/lib/server/referrals";
+import { kickWidgets } from "@/lib/widgets/service";
 
 /**
  * Подтверждение оплаты админом: на каждый отправленный релиз бот пишет админу
@@ -336,6 +337,7 @@ export async function handlePaymentCallback(admin: SupabaseClient, query: Telegr
   }
 
   await answerTelegramCallbackQuery(query.id, changed ? `Записал: ${ANSWER_BUTTON[parsed.answer]}` : "Уже отмечено.");
+  if (changed) await kickWidgets();
 }
 
 export type RemindToPayResult = { ok: true } | { ok: false; status: 404 | 409 | 422 | 500; error: string };

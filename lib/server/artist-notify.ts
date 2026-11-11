@@ -1,6 +1,7 @@
 import { createSupabaseAdmin } from "@/lib/supabase-admin";
 import { getUserProfileByTelegramId } from "@/lib/auth/hybrid-auth";
 import { sendTelegramNotification } from "@/lib/telegram-notifications";
+import { kickWidgets } from "@/lib/widgets/service";
 
 type NotifiableRelease = {
   telegram_id?: unknown;
@@ -53,6 +54,8 @@ export async function notifyArtist(
   if (!tid) return false;
   if (!(await isPushEnabled(record, tid, kind))) return false;
   await sendTelegramNotification(tid, text);
+  // Событие по релизу — карточка «Мои релизы» и пульт обновятся сразу, не дожидаясь минутного цикла.
+  if (kind === "release") await kickWidgets([tid]);
   return true;
 }
 

@@ -19,7 +19,8 @@ vi.mock("../lib/release-ai-moderation.server", () => ({
   runAiMetadataPrecheckForRelease: async () => ({ allow: true })
 }));
 vi.mock("../lib/admin-notify.server", () => ({ notifyAdminReleaseSubmitted: async () => {} }));
-vi.mock("../lib/server/artist-notify", () => ({ notifyArtist: async () => true }));
+vi.mock("../lib/server/artist-notify", () => ({ notifyArtist: async () => true, artistTelegramId: () => null }));
+vi.mock("../lib/widgets/service", () => ({ sendWidgetCard: async () => ({ ok: true, messageId: 1 }) }));
 vi.mock("../lib/server/release-list-cache", () => ({ invalidateMyReleasesCache: async () => {} }));
 vi.mock("../lib/server/payment-confirm", () => ({
   requestPaymentConfirmationOnSubmit: (...a: unknown[]) => requestPayment(...a)

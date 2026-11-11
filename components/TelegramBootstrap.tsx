@@ -15,7 +15,11 @@ import {
 } from "@/lib/telegram";
 import { releaseApiRequest } from "@/lib/api/release-client";
 import { parseReferralStartParam } from "@/lib/referral";
+import { widgetDeepLinkPath } from "@/lib/widget-deeplink";
 import { REFERRAL_SWR_KEY } from "@/lib/hooks/useReferral";
+
+/** Переход по ссылке из карточки — один раз за запуск, иначе «Назад» на главную снова уводил бы на релиз. */
+let deepLinkUsed = false;
 
 const REFERRAL_DONE_KEY = "omf:referral-attributed";
 /** telegram-web-app.js подключается позже первого эффекта — ждём WebApp до ~10 с. */
@@ -102,14 +106,15 @@ export function TelegramBootstrap() {
     const startParam = getTelegramStartParam();
     const userId = getTelegramUserId();
     const adminId = getAdminTelegramIdForUi();
-    if (
-      startParam === "admin" &&
-      adminId !== null &&
-      userId !== null &&
-      telegramIdsEqual(userId, adminId) &&
-      pathname === "/"
-    ) {
+    const isAdmin = adminId !== null && userId !== null && telegramIdsEqual(userId, adminId);
+    if (startParam === "admin" && isAdmin && pathname === "/") {
       router.replace("/admin");
+    }
+    // Кнопка «Открыть в приложении» в карточке бота ведёт сразу на нужный релиз.
+    const deepLink = widgetDeepLinkPath(startParam, isAdmin);
+    if (deepLink && pathname === "/" && !deepLinkUsed) {
+      deepLinkUsed = true;
+      router.replace(deepLink);
     }
   }, [pathname, router]);
 
