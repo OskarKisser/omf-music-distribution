@@ -32,7 +32,7 @@ const ADMIN_COMMANDS = [
   { command: "releases", description: "Мои релизы — живая карточка" }
 ];
 const ARTIST_COMMANDS = [{ command: "releases", description: "Мои релизы — живая карточка" }];
-export const WEBHOOK_UPDATES = ["callback_query", "message", "widget_query"];
+const WEBHOOK_UPDATES = ["callback_query", "message", "widget_query"];
 
 type WebhookInfo = { url?: string; allowed_updates?: string[]; pending_update_count?: number; last_error_message?: string };
 
