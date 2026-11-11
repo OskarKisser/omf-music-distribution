@@ -5,10 +5,12 @@
  */
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { PaymentAnswer } from "@/lib/release-payment";
+import { getReleaseDisplayTitle } from "@/repositories/releases.repo";
 import { setReleasePaymentStatus } from "@/lib/server/payment-confirm";
+import { approveRelease } from "@/lib/server/release-approve";
 import { loadArtistReleases, loadPaymentPage, loadQueue } from "./data";
 import { isAdminChat } from "./service";
-import { paymentDone, paymentPage, queuePage, releaseDetail, releasesPage, type ReleasesFilter } from "./state";
+import { paymentDone, paymentPage, queueDone, queuePage, short, releaseDetail, releasesPage, type ReleasesFilter } from "./state";
 
 export const EMPTY_ANSWER = "0";
 
@@ -58,6 +60,14 @@ async function adminQuery(admin: SupabaseClient, data: string): Promise<QueryRes
     if (!res.ok) return { answer: EMPTY_ANSWER };
     const { items, total } = await loadPaymentPage(admin, 0);
     return { answer: paymentDone(PAYMENT_DONE[answer], items, total), kick: true };
+  }
+  m = /^a:o:([0-9a-f-]{36})$/i.exec(data);
+  if (m) {
+    // Та же функция, что кнопка «Принять» в админке: статус, учёт принятия, сообщение артисту.
+    const res = await approveRelease(admin, m[1].toLowerCase());
+    if (!res.ok) return { answer: EMPTY_ANSWER };
+    const title = getReleaseDisplayTitle(res.record) || "релиз";
+    return { answer: queueDone(`Одобрен: «${short(title, 40)}»`, await loadQueue(admin, new Date())), kick: true };
   }
   return { answer: EMPTY_ANSWER };
 }

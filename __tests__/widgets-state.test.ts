@@ -7,6 +7,7 @@ import {
   moscowMinutes,
   paymentDone,
   paymentPage,
+  queueDone,
   queuePage,
   releaseDetail,
   releaseItem,
@@ -92,6 +93,16 @@ describe("Мои релизы", () => {
     expect(JSON.parse(releaseDetail(huge))[0]).toBe(items[0].release.id);
   });
 
+  it("день выхода: празднуем релиз со ссылкой, «Поделиться» — только с https-ссылкой", () => {
+    const out = releaseItem(rel(1, { status: "ready", smartLink: "https://band.link/x", releaseDate: "2026-11-11", title: "Маяки" }), NOW);
+    const st = JSON.parse(buildReleasesState([out, releaseItem(rel(2), NOW)], NOW).data);
+    expect(st[7]).toBe("Маяки");
+    expect(JSON.parse(buildReleasesState([releaseItem(rel(2), NOW)], NOW).data)[7]).toBe(0);
+    expect(JSON.parse(releaseDetail(out))[9]).toBe("https://band.link/x");
+    const bad = releaseItem(rel(3, { status: "ready", smartLink: "javascript:alert(1)" }), NOW);
+    expect(JSON.parse(releaseDetail(bad))[9]).toBe(0);
+  });
+
   it("фильтр «Ждут меня» — только вернули и не отправлены", () => {
     const items = [rel(1), rel(2, { status: "failed" }), rel(3, { status: "draft" })].map((r) => releaseItem(r, NOW));
     const [off, total, rows] = JSON.parse(releasesPage(items, "m", 0));
@@ -117,6 +128,13 @@ describe("Пульт", () => {
     expect(utf8Bytes(paymentPage(page, 0, 40))).toBeLessThanOrEqual(1024);
     const done = JSON.parse(paymentDone("Отмечено: оплатил", page, 39));
     expect(done.slice(0, 4)).toEqual(["Отмечено: оплатил", 39, 0, 39]);
+  });
+
+  it("ответ после одобрения ≤ 1024 байт, старые сверху", () => {
+    const d = JSON.parse(queueDone("Одобрен: «" + LONG.slice(0, 38) + "»", queue));
+    expect(utf8Bytes(queueDone("Одобрен", queue))).toBeLessThanOrEqual(1024);
+    expect(d.slice(1, 4)).toEqual([300, 0, 300]);
+    expect(d[4][0][3]).toBe(coarseWait(299 * 7));
   });
 
   it("пустой день — понятная подпись", () => {

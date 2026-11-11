@@ -4,8 +4,7 @@ import { z } from "zod";
 import { requireAdminSupabaseClient } from "@/lib/admin-release-api-guard";
 import { getTelegramAuthContextFromRequest } from "@/lib/api/with-telegram-auth";
 import { getReleaseDisplayTitle, type ReleaseRecord } from "@/repositories/releases.repo";
-import { acceptedMessage } from "@/lib/server/release-notify-texts";
-import { logAccepted } from "@/lib/server/release-accepted-at";
+import { approveRelease } from "@/lib/server/release-approve";
 import { escapeHtml } from "@/lib/telegram-bot.server";
 import { notifyArtist } from "@/lib/server/artist-notify";
 import { isMissingReleasesColumnError } from "@/lib/errors";
@@ -18,18 +17,12 @@ const bodySchema = z.object({
   reasonKeys: z.array(z.string().max(40)).max(10).optional()
 });
 
-async function notifyArtistOnModerationResult(
+async function notifyArtistOnReject(
   record: ReleaseRecord,
-  action: "approve" | "reject",
   comment?: string
 ): Promise<void> {
   const titleRaw = getReleaseDisplayTitle(record);
   const title = escapeHtml(titleRaw.length > 0 ? titleRaw : "релиз");
-
-  if (action === "approve") {
-    await notifyArtist(record, acceptedMessage(titleRaw));
-    return;
-  }
 
   const reason = escapeHtml((comment && comment.trim()) || "Отклонено модератором");
   await notifyArtist(
@@ -85,32 +78,11 @@ async function handleUpdateReleaseStatus(
     );
   }
 
-  // «Принять»: статус ready без ссылки — релиз ушёл дистрибьюторам, ссылку модератор добавит позже
-  // (publish-release-smart-link). WAV не удаляем: они ещё могут понадобиться дистрибьютору.
-  // Кошелёк/транзакции (ledger) намеренно не трогаем — фича заморожена.
+  // «Принять» — общая функция с карточкой «Пульт» (lib/server/release-approve).
   if (action === "approve") {
-    const { data: updated, error: updErr } = await supabase
-      .from("releases")
-      .update({
-        status: "ready",
-        error_message: null,
-        admin_notes: null
-      })
-      .eq("id", releaseId)
-      .select("*")
-      .maybeSingle();
-
-    if (updErr) {
-      console.error("[admin/update-release-status] approve:", updErr.message);
-      return NextResponse.json({ ok: false, error: "Не удалось одобрить релиз." }, { status: 500 });
-    }
-    if (!updated) {
-      return NextResponse.json({ ok: false, error: "Не удалось обновить релиз." }, { status: 500 });
-    }
-    await invalidateMyReleasesCache(updated as Record<string, unknown>);
-    await logAccepted(supabase, releaseId);
-    await notifyArtistOnModerationResult(updated as ReleaseRecord, "approve");
-    return NextResponse.json({ ok: true, record: updated as ReleaseRecord });
+    const res = await approveRelease(supabase, releaseId);
+    if (!res.ok) return NextResponse.json({ ok: false, error: res.error }, { status: res.status });
+    return NextResponse.json({ ok: true, record: res.record });
   }
 
   const msg = (comment && comment.trim()) || "Отклонено модератором";
@@ -153,7 +125,7 @@ async function handleUpdateReleaseStatus(
   }
 
   await invalidateMyReleasesCache(updated as Record<string, unknown>);
-  await notifyArtistOnModerationResult(updated as ReleaseRecord, "reject", msg);
+  await notifyArtistOnReject(updated as ReleaseRecord, msg);
   return NextResponse.json({ ok: true, record: updated as ReleaseRecord });
 }
 

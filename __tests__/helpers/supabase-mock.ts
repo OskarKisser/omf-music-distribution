@@ -38,7 +38,7 @@ export function createSupabaseMock(resolve: (call: MockCall) => MockResult) {
     builder.update = chain("update", "update");
     builder.upsert = chain("upsert", "upsert");
     builder.delete = chain("delete", "delete");
-    for (const f of ["eq", "in", "is", "not", "or", "order", "limit", "gte", "lte", "like", "range"]) builder[f] = chain(f);
+    for (const f of ["eq", "neq", "in", "is", "not", "or", "order", "limit", "gte", "lte", "like", "range"]) builder[f] = chain(f);
     builder.maybeSingle = run;
     builder.single = run;
     builder.then = (onOk: (v: MockResult) => unknown, onErr?: (e: unknown) => unknown) =>

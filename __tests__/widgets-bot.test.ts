@@ -11,7 +11,8 @@ const tg = vi.hoisted(() => ({
   loadQueue: vi.fn(),
   countUnpaid: vi.fn(),
   countNew24h: vi.fn(),
-  loadPaymentPage: vi.fn()
+  loadPaymentPage: vi.fn(),
+  approve: vi.fn()
 }));
 
 vi.mock("../lib/widgets/api", async () => {
@@ -32,6 +33,7 @@ vi.mock("../lib/widgets/data", () => ({
   loadPaymentPage: tg.loadPaymentPage
 }));
 vi.mock("../lib/server/payment-confirm", () => ({ setReleasePaymentStatus: tg.setPayment }));
+vi.mock("../lib/server/release-approve", () => ({ approveRelease: tg.approve }));
 
 import { extractWidgetQuery, parseCommand } from "@/lib/widgets/bot";
 import { EMPTY_ANSWER, handleWidgetQueryData } from "@/lib/widgets/queries";
@@ -134,6 +136,25 @@ describe("отметка оплаты из карточки", () => {
     const { admin } = db();
     tg.setPayment.mockResolvedValue({ ok: false, status: 404, error: "нет" });
     expect((await handleWidgetQueryData(admin, ADMIN, `a:y:p:${ID}`)).answer).toBe(EMPTY_ANSWER);
+  });
+});
+
+describe("одобрение из пульта", () => {
+  it("та же функция, что кнопка «Принять»; ответ — очередь без релиза", async () => {
+    const { admin } = db();
+    tg.approve.mockResolvedValue({ ok: true, record: { id: ID, title: "Пыль" } });
+    tg.loadQueue.mockResolvedValue([]);
+    const res = await handleWidgetQueryData(admin, ADMIN, `a:o:${ID}`);
+    expect(tg.approve).toHaveBeenCalledWith(admin, ID);
+    expect(JSON.parse(res.answer)).toEqual(["Одобрен: «Пыль»", 0, 0, 0, []]);
+    expect(res.kick).toBe(true);
+  });
+  it("артисту нельзя; уже обработан — пустой ответ", async () => {
+    const { admin } = db();
+    expect((await handleWidgetQueryData(admin, ARTIST, `a:o:${ID}`)).answer).toBe(EMPTY_ANSWER);
+    expect(tg.approve).not.toHaveBeenCalled();
+    tg.approve.mockResolvedValue({ ok: false, status: 409, error: "уже" });
+    expect((await handleWidgetQueryData(admin, ADMIN, `a:o:${ID}`)).answer).toBe(EMPTY_ANSWER);
   });
 });
 
