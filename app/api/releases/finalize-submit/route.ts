@@ -38,7 +38,8 @@ async function notifyReleaseSubmittedForModeration(
   const text =
     `🚀 <b>Ваш релиз «${title}» отправлен на модерацию!</b>\n\n` +
     `Мы проверим его в течение 24 часов и пришлем уведомление здесь.`;
-  await notifyArtist(record, text);
+  // Свежую карточку шлём ниже сами — без второй из kickWidgets.
+  await notifyArtist(record, text, "release", { ensureCard: false });
   // Карточка «Мои релизы» — живой статус рядом с текстом; текст остаётся для компьютера и уведомлений.
   const tid = artistTelegramId(record);
   if (tid) await sendWidgetCard(admin, "releases", tid, { silent: true });

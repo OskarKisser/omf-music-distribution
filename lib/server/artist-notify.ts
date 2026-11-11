@@ -48,14 +48,16 @@ async function isPushEnabled(record: NotifiableRelease, telegramId: string, kind
 export async function notifyArtist(
   record: NotifiableRelease,
   text: string,
-  kind: ArtistNotifyKind = "release"
+  kind: ArtistNotifyKind = "release",
+  opts: { ensureCard?: boolean } = {}
 ): Promise<boolean> {
   const tid = artistTelegramId(record);
   if (!tid) return false;
   if (!(await isPushEnabled(record, tid, kind))) return false;
   await sendTelegramNotification(tid, text);
   // Событие по релизу — карточка «Мои релизы» и пульт обновятся сразу, не дожидаясь минутного цикла.
-  if (kind === "release") await kickWidgets([tid]);
+  // Если карточки у артиста ещё нет, она придёт тихо (кроме случаев, когда вызывающий шлёт свою).
+  if (kind === "release") await kickWidgets([tid], { ensureCard: opts.ensureCard !== false });
   return true;
 }
 

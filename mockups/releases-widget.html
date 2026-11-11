@@ -84,6 +84,7 @@ button{font:inherit;color:inherit;background:none;border:0;padding:0;text-align:
 .n{font-size:19px;font-weight:700;line-height:23px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
 .x{font-size:14px;margin-top:8px}
 .bt{display:block;width:100%;margin-top:12px;padding:12px;border-radius:12px;text-align:center;font-weight:600;background:var(--tg-theme-button-color);color:var(--tg-theme-button-text-color)}
+.b2{margin-top:8px;background:color-mix(in srgb,var(--tg-theme-button-color) 14%,transparent);color:var(--tg-theme-link-color)}
 .e{text-align:center;padding:12px 0}
 .o{font-size:13px;margin:8px 4px 0}
 </style>
@@ -104,9 +105,9 @@ function load(){try{const x=JSON.parse(W.chatData);if(x)s=x}catch(_){}
 if(f=="a"&&!sk.length)pg={o:0,n:s[0],r:s[6]}}
 function list(){const n=s[0],a=s[1]+s[2],end=pg.o+pg.r.length,x=s[4]
 if(!n)return`<div class="k e"><div class="mid">Пока пусто</div><div class="h">Загрузи первый релиз — здесь будет видно, где он</div><button class="bt" data-a="x">Загрузить релиз</button></div>`
-return`<div class="k"><div class="tb">${F.map(t=>`<button data-a="f" data-v="${t[0]}"${t[0]==f?' class="on"':""}>${t[1]}</button>`).join("")}</div><div class="hr"><div><div class="big">${n}<small>${pl(n,["релиз","релиза","релизов"])}</small></div><div class="h">${a?"ждут тебя: "+a:"всё идёт по плану"}</div></div>${s[1]?`<span class="pl bad">вернули ${s[1]}</span>`:s[2]?`<span class="pl">не отправлено ${s[2]}</span>`:""}</div><div style="margin-top:6px">${pg.r.length?pg.r.map(w=>`<button class="w" data-a="o" data-v="${e(w[0])}"><span class="m"><span class="t b">${e(w[1])}</span><span class="s t${T[w[2]]}">${e(ln(w[2],w[3]))}</span></span>${sg(w[2])}</button>`).join(""):`<div class="e h">Здесь пусто</div>`}</div>${pg.n>end||pg.o?`<div class="g"><button data-a="p"${pg.o?"":" disabled"}>‹ Назад</button><span class="h">${pg.o+1}–${end} из ${pg.n}</span><button data-a="n"${pg.n>end?"":" disabled"}>Дальше ›</button></div>`:""}</div><div class="u"><div class="k"><div class="h">Ближайший выход</div><div class="mid">${x?e(x[0]):"—"}</div><div class="h t">${x?e(x[1]):"дат пока нет"}</div></div><div class="k"><div class="h">Ссылки</div><div class="mid">${s[3]}</div><div class="h">готово из ${n}</div></div></div>`}
+return`<div class="k"><div class="tb">${F.map(t=>`<button data-a="f" data-v="${t[0]}"${t[0]==f?' class="on"':""}>${t[1]}</button>`).join("")}</div><div class="hr"><div><div class="big">${n}<small>${pl(n,["релиз","релиза","релизов"])}</small></div><div class="h">${a?"ждут тебя: "+a:"всё идёт по плану"}</div></div>${s[1]?`<span class="pl bad">вернули ${s[1]}</span>`:s[2]?`<span class="pl">не отправлено ${s[2]}</span>`:""}</div><div style="margin-top:6px">${pg.r.length?pg.r.map(w=>`<button class="w" data-a="o" data-v="${e(w[0])}"><span class="m"><span class="t b">${e(w[1])}</span><span class="s t${T[w[2]]}">${e(ln(w[2],w[3]))}</span></span>${sg(w[2])}</button>`).join(""):`<div class="e h">Здесь пусто</div>`}</div>${pg.n>end||pg.o?`<div class="g"><button data-a="p"${pg.o?"":" disabled"}>‹ Назад</button><span class="h">${pg.o+1}–${end} из ${pg.n}</span><button data-a="n"${pg.n>end?"":" disabled"}>Дальше ›</button></div>`:""}</div><div class="u">${s[7]?`<div class="k"><div class="h">Сегодня вышел</div><div class="mid">🎉</div><div class="h t">${e(s[7])}</div></div>`:`<div class="k"><div class="h">Ближайший выход</div><div class="mid">${x?e(x[0]):"—"}</div><div class="h t">${x?e(x[1]):"дат пока нет"}</div></div>`}<div class="k"><div class="h">Ссылки</div><div class="mid">${s[3]}</div><div class="h">готово из ${n}</div></div></div>`}
 function card(d){const k=d[4]
-return`<div class="k"><button class="lk" data-a="b">‹ Все релизы</button><div class="c"><div class="cv">${e([...d[1]][0]||"♪")}</div><div class="m"><div class="n">${e(d[1])}</div><div class="h t">${e(d[2])} · ${e(d[3])}</div></div></div><div class="t${T[k]}" style="margin-top:12px;font-size:17px;font-weight:700">${e(d[7])}</div>${G[k]<0?"":sg(k," j")+`<div class="jl">${J.map(x=>`<span>${x}</span>`).join("")}</div>`}${d[6]?`<span class="pl">Выход ${e(d[6])}</span>`:""}<div class="x">${e(d[8])}</div><button class="bt" data-a="x" data-v="${e(d[0])}">Открыть в приложении</button></div>`}
+return`<div class="k"><button class="lk" data-a="b">‹ Все релизы</button><div class="c"><div class="cv">${e([...d[1]][0]||"♪")}</div><div class="m"><div class="n">${e(d[1])}</div><div class="h t">${e(d[2])} · ${e(d[3])}</div></div></div><div class="t${T[k]}" style="margin-top:12px;font-size:17px;font-weight:700">${e(d[7])}</div>${G[k]<0?"":sg(k," j")+`<div class="jl">${J.map(x=>`<span>${x}</span>`).join("")}</div>`}${d[6]?`<span class="pl">Выход ${e(d[6])}</span>`:""}<div class="x">${e(d[8])}</div>${d[9]?`<button class="bt" data-a="sh">Поделиться ссылкой</button>`:""}<button class="bt${d[9]?" b2":""}" data-a="x" data-v="${e(d[0])}">Открыть в приложении</button></div>`}
 function draw(){R.innerHTML=`<div class="hd">${IC}<span class="lb">Мои релизы</span><span class="lv">${tm(s[5])}</span></div>`+(cur?card(cur):list())+(err?`<div class="o tp">${e(err)}</div>`:"")}
 function ask(q,el){if(busy)return Promise.reject();busy=1;err="";el&&el.classList.add("q")
 return W.request(q).then(r=>{const d=JSON.parse(r.result);if(!d)throw 0;return d}).catch(x=>{err=x&&x.code=="RATE_LIMITED"?"Слишком часто — подожди пару секунд":"Не получилось загрузить, попробуй ещё раз";draw();throw x}).finally(()=>{busy=0})}
@@ -114,6 +115,7 @@ const page=(t,o,el,ok)=>ask("r:p:"+t+":"+o,el).then(p=>{ok();f=t;pg={o:p[0],n:p[
 R.onclick=ev=>{const b=ev.target.closest("[data-a]");if(!b||b.disabled)return;const a=b.dataset.a,v=b.dataset.v;H()
 if(a=="o")ask("r:d:"+v,b).then(d=>{cur=d;draw()},()=>{})
 else if(a=="b"){cur=null;draw()}
+else if(a=="sh")W.openTelegramLink("https://t.me/share/url?url="+encodeURIComponent(cur[9])+"&text="+encodeURIComponent("Слушай «"+cur[1]+"»"))
 else if(a=="x")W.openTelegramLink(A+(v?"?startapp=r_"+v:""))
 else if(a=="f"){if(v=="a"){f=v;sk=[];load();draw()}else page(v,0,b,()=>{sk=[]})}
 else if(a=="n")page(f,pg.o+pg.r.length,b,()=>sk.push(pg.o))
@@ -153,6 +155,7 @@ const BASE = [
 function releases(scn) {
   if (scn === "empty") return [];
   if (scn === "one") return [BASE[0]];
+  if (scn === "out") return [["Лето без тебя", 5, null, "Сингл", "сегодня", 1], ...BASE.slice(2)];
   if (scn === "long") {
     return Array.from({ length: 40 }, (_, i) => [
       "Очень длинное название релиза номер " + (i + 1) + " — расширенная версия с бонус-треками",
@@ -176,14 +179,15 @@ function state(all) {
   const un = all.filter((r) => r[1] <= 1).length;
   const lk = all.filter((r) => r[1] === 5).length;
   const nx = all.find((r) => r[4] && r[1] >= 5 && r[1] <= 7);
-  const head = (rs) => [all.length, fx, un, lk, nx ? [nx[4], short(nx[0], 28)] : 0, nowMin(), rs];
+  const out = all.find((r) => r[5]);
+  const head = (rs) => [all.length, fx, un, lk, nx ? [nx[4], short(nx[0], 28)] : 0, nowMin(), rs, out ? short(out[0], 28) : 0];
   return JSON.stringify(head(pageRows(withIdx(all), 0, head)));
 }
 
 const MOCK = {
   title: "Мои релизы — карточка артиста",
   prefix: "r",
-  scenarios: { normal: "7 релизов", one: "Один на проверке", empty: "Пусто", long: "40 длинных" },
+  scenarios: { normal: "7 релизов", out: "День выхода", one: "Один на проверке", empty: "Пусто", long: "40 длинных" },
   chatData: (scn) => state(releases(scn)),
   nextChatData(scn) {
     // Модератор принял «Ночной город»: 3 → 6.
@@ -210,7 +214,7 @@ const MOCK = {
     const i = all.findIndex((_, j) => uid(j).startsWith(m[1]));
     if (i < 0) return "0";
     const r = all[i];
-    return JSON.stringify([uid(i), short(r[0], 60), short(ARTIST(scn), 40), r[3], r[1], r[2], r[4], TITLE[r[1]], BODY[r[1]]]);
+    return JSON.stringify([uid(i), short(r[0], 60), short(ARTIST(scn), 40), r[3], r[1], r[2], r[4], TITLE[r[1]], BODY[r[1]], r[1] === 5 ? "https://band.link/leto-bez-tebya" : 0]);
   }
 };
 </script>

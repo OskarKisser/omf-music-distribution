@@ -8,6 +8,7 @@ import { escapeHtml, sendTelegramBotMessage } from "@/lib/telegram-bot.server";
 import { answerWidgetQuery, type WidgetQuery } from "./api";
 import { loadArtistReleases, countUnpaid, loadQueue } from "./data";
 import { handleWidgetQueryData } from "./queries";
+import { markWidgetOpened } from "./summary";
 import { isAdminChat, kickWidgets, sendWidgetCard, widgetAppUrl, type WidgetKind } from "./service";
 import { short, utf8Bytes } from "./state";
 
@@ -58,6 +59,8 @@ export async function handleWidgetQuery(admin: SupabaseClient, q: WidgetQuery): 
     `[widgets] query ${q.data ?? "?"} from ${q.from?.id ?? "?"} → ${utf8Bytes(answer)} B in ${Date.now() - started} ms` +
       (sent.ok ? "" : ` (answer failed: ${sent.error})`)
   );
+  const from = q.from?.id == null ? "" : String(q.from.id);
+  if (from && /^[ra]:/.test(q.data ?? "")) await markWidgetOpened(admin, from, q.data!.startsWith("r:") ? "releases" : "today");
   if (kick) await kickWidgets();
 }
 

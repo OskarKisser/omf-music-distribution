@@ -11,7 +11,8 @@ const tg = vi.hoisted(() => ({
   loadQueue: vi.fn(),
   countUnpaid: vi.fn(),
   countNew24h: vi.fn(),
-  loadPaymentPage: vi.fn()
+  loadPaymentPage: vi.fn(),
+  approve: vi.fn()
 }));
 
 vi.mock("../lib/widgets/api", async () => {
@@ -32,10 +33,11 @@ vi.mock("../lib/widgets/data", () => ({
   loadPaymentPage: tg.loadPaymentPage
 }));
 vi.mock("../lib/server/payment-confirm", () => ({ setReleasePaymentStatus: tg.setPayment }));
+vi.mock("../lib/server/release-approve", () => ({ approveRelease: tg.approve }));
 
 import { extractWidgetQuery, parseCommand } from "@/lib/widgets/bot";
 import { EMPTY_ANSWER, handleWidgetQueryData } from "@/lib/widgets/queries";
-import { buildState, refreshWidget, sendWidgetCard, widgetsAllowed, type WidgetRecord } from "@/lib/widgets/service";
+import { buildState, ensureReleasesCards, refreshWidget, sendWidgetCard, widgetsAllowed, type WidgetRecord } from "@/lib/widgets/service";
 import { releaseItem, type ArtistRelease } from "@/lib/widgets/state";
 
 const ADMIN = "111";
@@ -137,6 +139,25 @@ describe("отметка оплаты из карточки", () => {
   });
 });
 
+describe("одобрение из пульта", () => {
+  it("та же функция, что кнопка «Принять»; ответ — очередь без релиза", async () => {
+    const { admin } = db();
+    tg.approve.mockResolvedValue({ ok: true, record: { id: ID, title: "Пыль" } });
+    tg.loadQueue.mockResolvedValue([]);
+    const res = await handleWidgetQueryData(admin, ADMIN, `a:o:${ID}`);
+    expect(tg.approve).toHaveBeenCalledWith(admin, ID);
+    expect(JSON.parse(res.answer)).toEqual(["Одобрен: «Пыль»", 0, 0, 0, []]);
+    expect(res.kick).toBe(true);
+  });
+  it("артисту нельзя; уже обработан — пустой ответ", async () => {
+    const { admin } = db();
+    expect((await handleWidgetQueryData(admin, ARTIST, `a:o:${ID}`)).answer).toBe(EMPTY_ANSWER);
+    expect(tg.approve).not.toHaveBeenCalled();
+    tg.approve.mockResolvedValue({ ok: false, status: 409, error: "уже" });
+    expect((await handleWidgetQueryData(admin, ADMIN, `a:o:${ID}`)).answer).toBe(EMPTY_ANSWER);
+  });
+});
+
 describe("отправка и обновление", () => {
   it("WIDGETS_ONLY: карточки только перечисленным", () => {
     vi.stubEnv("WIDGETS_ONLY", `${ADMIN}, 444`);
@@ -192,6 +213,19 @@ describe("отправка и обновление", () => {
     const rec: WidgetRecord = { chat_id: ARTIST, kind: "releases", message_id: 5, data_key: "old", caption: "old" };
     expect(await refreshWidget(admin, rec)).toBe("removed");
     expect(calls.some((c) => c.table === "widget_messages" && c.op === "delete")).toBe(true);
+  });
+
+  it("первое событие: карточку шлём тихо только тем, у кого её нет", async () => {
+    const { admin } = db((c) =>
+      c.table === "widget_messages" && c.op === "select" ? { data: [{ chat_id: 333 }], error: null } : { data: [], error: null }
+    );
+    tg.sendWidget.mockResolvedValue({ ok: true, result: { message_id: 9, chat: { id: 222 } } });
+    expect(await ensureReleasesCards(admin, [ARTIST, "333"])).toBe(1);
+    expect(tg.sendWidget).toHaveBeenCalledTimes(1);
+    expect(tg.sendWidget.mock.calls[0][0]).toMatchObject({ chatId: ARTIST, disableNotification: true });
+    vi.stubEnv("WIDGETS_ONLY", ADMIN);
+    expect(await ensureReleasesCards(admin, [ARTIST])).toBe(0);
+    expect(tg.sendWidget).toHaveBeenCalledTimes(1);
   });
 
   it("роль админа сняли — пульт больше не обновляем", async () => {

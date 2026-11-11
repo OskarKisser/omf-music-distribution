@@ -88,7 +88,7 @@ button{font:inherit;color:inherit;background:none;border:0;padding:0;text-align:
 <script>
 const W=window.TelegramWidget,A="%APP%",R=document.getElementById("r")
 const IC='<span class="ic"><svg viewBox="0 0 24 24"><path d="M5 21v-7m0-4V3m7 18v-9m0-4V3m7 18v-5m0-4V3M2 14h6m1-6h6m1 8h6"/></svg></span>'
-let s=[0,0,0,0,0,[]],v="q",pg={o:0,n:0,r:[]},sk=[],sel="",busy=0,msg="",mc=""
+let s=[0,0,0,0,0,[]],v="q",pg={o:0,n:0,r:[]},sk=[],sel="",busy=0,msg="",mc="",cf=""
 const e=x=>String(x??"").replace(/[&<>"]/g,c=>"&#"+c.charCodeAt(0)+";")
 const H=t=>{try{t?W.HapticFeedback.notificationOccurred(t):W.HapticFeedback.impactOccurred("light")}catch(_){}}
 const hm=m=>m<60?m+" мин":m<1440?Math.floor(m/60)+" ч":Math.floor(m/1440)+" дн"
@@ -97,7 +97,7 @@ const pl=(n,w)=>w[n%10==1&&n%100!=11?0:n%10>=2&&n%10<=4&&(n%100<12||n%100>14)?1:
 function load(){try{const x=JSON.parse(W.chatData);if(x)s=x}catch(_){}
 if(v=="q"&&!sk.length)pg={o:0,n:s[0],r:s[5]}}
 function rows(){const p=v=="m"
-return pg.r.length?pg.r.map(w=>p?`<button class="w" data-a="s" data-v="${e(w[0])}"><span class="m"><span class="t b">${e(w[1])}</span><span class="t h">${e(w[2])}${w[3]?" · скидка "+w[3]+" ₽":""}</span></span><span class="h">${sel==w[0]?"⌄":"›"}</span></button>${sel==w[0]?`<div class="z"><button class="y" data-a="y" data-v="p">Оплатил</button><button data-a="y" data-v="u">Не оплатил</button><button data-a="y" data-v="n">Не клиент</button></div>`:""}`:`<button class="w" data-a="x" data-v="${e(w[0])}"><span class="m"><span class="t b">${e(w[1])}</span><span class="t h">${e(w[2])}</span></span><span class="br"><i class="${w[3]>=1440?"bad":""}" style="width:${Math.max(6,Math.min(100,w[3]/14.4))}%"></i></span><span class="n${w[3]>=1440?" bad":""}">${hm(w[3])}</span></button>`).join(""):`<div class="e"><div class="mid ok">✓</div><div class="h">${p?"Все оплаты отмечены":"Очередь пуста"}</div></div>`}
+return pg.r.length?pg.r.map(w=>p?`<button class="w" data-a="s" data-v="${e(w[0])}"><span class="m"><span class="t b">${e(w[1])}</span><span class="t h">${e(w[2])}${w[3]?" · скидка "+w[3]+" ₽":""}</span></span><span class="h">${sel==w[0]?"⌄":"›"}</span></button>${sel==w[0]?`<div class="z"><button class="y" data-a="y" data-v="p">Оплатил</button><button data-a="y" data-v="u">Не оплатил</button><button data-a="y" data-v="n">Не клиент</button></div>`:""}`:`<button class="w" data-a="s" data-v="${e(w[0])}"><span class="m"><span class="t b">${e(w[1])}</span><span class="t h">${e(w[2])}</span></span><span class="br"><i class="${w[3]>=1440?"bad":""}" style="width:${Math.max(6,Math.min(100,w[3]/14.4))}%"></i></span><span class="n${w[3]>=1440?" bad":""}">${hm(w[3])}</span></button>${sel==w[0]?`<div class="z"><button class="y" data-a="o">${cf==sel?"Точно одобрить?":"Одобрить"}</button><button data-a="x" data-v="${e(w[0])}">Открыть ›</button></div>`:""}`).join(""):`<div class="e"><div class="mid ok">✓</div><div class="h">${p?"Все оплаты отмечены":"Очередь пуста"}</div></div>`}
 function draw(){const q=s[0],o=s[1],u=s[2],p=v=="m",n=p?u:q,end=pg.o+pg.r.length
 R.innerHTML=`<div class="hd">${IC}<span class="lb">Пульт</span><span class="lv${o>=1440?" bad":""}">${tm(s[4])}</span></div><div class="k"><div class="tb"><button data-a="t" data-v="q"${p?"":' class="on"'}>Очередь</button><button data-a="t" data-v="m"${p?' class="on"':""}>Оплата${u?" · "+u:""}</button></div><div class="hr"><div><div class="big">${n}<small>${p?pl(n,["релиз","релиза","релизов"]):"на проверке"}</small></div><div class="h">${p?"оплата не отмечена":"+"+s[3]+" за сутки"}</div></div>${!p&&q?`<span class="pl${o>=1440?" bad":""}">ждёт ${hm(o)}</span>`:""}</div><div style="margin-top:6px">${rows()}</div>${pg.n>end||pg.o?`<div class="g"><button data-a="p"${pg.o?"":" disabled"}>‹ Назад</button><span class="h">${pg.o+1}–${end} из ${pg.n}</span><button data-a="n"${pg.n>end?"":" disabled"}>Дальше ›</button></div>`:""}</div>${p?"":`<div class="u"><div class="k"><div class="h">За сутки</div><div class="mid">${s[3]}</div><div class="h">${pl(s[3],["новый релиз","новых релиза","новых релизов"])}</div></div><button class="k" data-a="t" data-v="m"><div class="h">Оплата ›</div><div class="mid ${u?"bad":"ok"}">${u||"✓"}</div><div class="h">${u?"не отмечена":"всё отмечено"}</div></button></div>`}${msg?`<div class="o ${mc}">${e(msg)}</div>`:""}`}
 function ask(q,el){if(busy)return Promise.reject();busy=1;msg="";el&&el.classList.add("q")
@@ -106,7 +106,8 @@ const page=(t,o,el,ok)=>ask("a:"+t+":"+o,el).then(p=>{ok();v=t;pg={o:p[0],n:p[1]
 R.onclick=ev=>{const b=ev.target.closest("[data-a]");if(!b||b.disabled)return;const a=b.dataset.a,x=b.dataset.v;a!="y"&&H()
 if(a=="t"){sel="";msg="";if(x=="q"){v=x;sk=[];load();draw()}else page(x,0,b,()=>{sk=[]})}
 else if(a=="x")W.openTelegramLink(A+"?startapp=a_"+x)
-else if(a=="s"){sel=sel==x?"":x;msg="";draw()}
+else if(a=="s"){sel=sel==x?"":x;cf="";msg="";draw()}
+else if(a=="o"){if(cf!=sel){cf=sel;draw()}else ask("a:o:"+sel,b).then(r=>{s[0]=r[1];pg={o:r[2],n:r[3],r:r[4]};sel=cf="";msg=r[0];mc="ok";H("success");draw()},()=>{})}
 else if(a=="y")ask("a:y:"+x+":"+sel,b).then(r=>{s[2]=r[1];pg={o:r[2],n:r[3],r:r[4]};sel="";msg=r[0];mc="ok";H("success");draw()},()=>{})
 else if(a=="n")page(v,pg.o+pg.r.length,b,()=>sk.push(pg.o))
 else if(a=="p")page(v,sk[sk.length-1],b,()=>sk.pop())}
@@ -184,6 +185,15 @@ const MOCK = {
       d.p.splice(i, 1);
       const head = (rs) => [DONE[m[1]], d.p.length, 0, d.p.length, rs];
       return JSON.stringify(head(rows(d.p, 0, head)));
+    }
+    m = /^a:o:([0-9a-f-]{36})$/.exec(data_);
+    if (m) {
+      const i = d.q.findIndex((r) => r[0] === m[1]);
+      if (i < 0) return "0";
+      const t = d.q[i][1];
+      d.q.splice(i, 1);
+      const head = (rs) => [`Одобрен: «${short(t, 40)}»`, d.q.length, 0, d.q.length, rs];
+      return JSON.stringify(head(rows(d.q, 0, head)));
     }
     return "0";
   }

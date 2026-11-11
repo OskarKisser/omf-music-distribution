@@ -157,16 +157,24 @@ export function moscowTodayIso(now: Date): string {
   return new Intl.DateTimeFormat("en-CA", { timeZone: "Europe/Moscow" }).format(now);
 }
 
-/** `[всего, вернули, не отправлено, ссылок, ближайший|0, минуты, строки первой страницы]`. */
+/** Релиз со ссылкой, который выходит сегодня (по Москве): карточка празднует. */
+function outToday(items: ReleaseItem[], todayIso: string): string | 0 {
+  const it = items.find((i) => i.k === 5 && (i.release.releaseDate ?? "").slice(0, 10) === todayIso);
+  return it ? short(it.release.title || "Без названия", 28) : 0;
+}
+
+/** `[всего, вернули, не отправлено, ссылок, ближайший|0, минуты, строки первой страницы, вышел сегодня|0]`. */
 export function buildReleasesState(items: ReleaseItem[], now: Date): WidgetState {
   const fx = items.filter((i) => i.k === 2).length;
   const un = items.filter((i) => i.k <= 1).length;
   const lk = items.filter((i) => i.k === 5).length;
-  const nx = nextRelease(items, moscowTodayIso(now));
-  const head = (rows: ReleaseRow[]) => [items.length, fx, un, lk, nx, moscowMinutes(now), rows];
+  const today = moscowTodayIso(now);
+  const nx = nextRelease(items, today);
+  const out = outToday(items, today);
+  const head = (rows: ReleaseRow[]) => [items.length, fx, un, lk, nx, moscowMinutes(now), rows, out];
   const rows = pageOf(items, 0, releaseRow, head);
   const full = head(rows);
-  const key = JSON.stringify([full[0], full[1], full[2], full[3], full[4], full[6]]);
+  const key = JSON.stringify([full[0], full[1], full[2], full[3], full[4], full[6], full[7]]);
   return { data: JSON.stringify(full), key, caption: releasesCaption(items) };
 }
 
@@ -186,6 +194,12 @@ export function releasesPage(items: ReleaseItem[], f: ReleasesFilter, off: numbe
   return JSON.stringify(head(pageOf(list, o, releaseRow, head)));
 }
 
+/** Ссылка для «Поделиться»: только готовая https-ссылка разумной длины. */
+function shareLink(it: ReleaseItem): string | 0 {
+  const u = (it.release.smartLink ?? "").trim();
+  return it.k === 5 && /^https:\/\/\S+$/.test(u) && u.length <= 300 ? u : 0;
+}
+
 /** Ответ на `r:d:<id8>`: экран релиза. Длинное пояснение укорачиваем до предела. */
 export function releaseDetail(it: ReleaseItem): string {
   const r = it.release;
@@ -199,7 +213,8 @@ export function releaseDetail(it: ReleaseItem): string {
       it.h,
       shortReleaseDate(r.releaseDate),
       it.title,
-      body
+      body,
+      shareLink(it)
     ]);
   let body = it.body;
   while (utf8Bytes(build(body)) > STATE_LIMIT && body.length > 20) body = short(body, Math.floor([...body].length * 0.8));
@@ -272,6 +287,13 @@ export function paymentPage(page: PaymentItem[], off: number, total: number): st
 }
 
 /** Ответ на отметку оплаты: `[сообщение, осталось без отметки, смещение, всего, строки]`. */
+/** Ответ на `a:o:<uuid>` (одобрили из пульта): `[сообщение, осталось, 0, всего, строки]`. */
+export function queueDone(message: string, queue: QueueItem[]): string {
+  const sorted = [...queue].sort((a, b) => b.waitMin - a.waitMin);
+  const head = (rows: QueueRow[]) => [message, sorted.length, 0, sorted.length, rows];
+  return JSON.stringify(head(pageOf(sorted, 0, queueRow, head)));
+}
+
 export function paymentDone(message: string, page: PaymentItem[], total: number): string {
   const head = (rows: PaymentRow[]) => [message, total, 0, total, rows];
   return JSON.stringify(head(pageOf(page, 0, paymentRow, head)));
