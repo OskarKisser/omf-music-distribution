@@ -73,6 +73,28 @@ async function forget(admin: SupabaseClient, chatId: string | number, kind: Widg
 
 export type SendResult = { ok: true; messageId: number } | { ok: false; reason: "not_allowed" | "not_admin" | "failed"; error?: string };
 
+/**
+ * Артисту без карточки «Мои релизы» — прислать её тихо (первое событие по релизу).
+ * У кого карточка уже есть, её только обновляет refreshWidgets.
+ */
+export async function ensureReleasesCards(admin: SupabaseClient, chatIds: string[]): Promise<number> {
+  const ids = chatIds.filter((id) => widgetsAllowed(id));
+  if (!ids.length) return 0;
+  const { data, error } = await admin.from(TABLE).select("chat_id").eq("kind", "releases").in("chat_id", ids);
+  if (error) {
+    console.error("[widgets] ensure:", error.message);
+    return 0;
+  }
+  const have = new Set(((data ?? []) as { chat_id: unknown }[]).map((r) => String(r.chat_id)));
+  let sent = 0;
+  for (const id of ids) {
+    if (have.has(id)) continue;
+    const r = await sendWidgetCard(admin, "releases", id, { silent: true });
+    if (r.ok) sent += 1;
+  }
+  return sent;
+}
+
 /** Отправить карточку и запомнить её как последнюю этого вида в чате. */
 export async function sendWidgetCard(
   admin: SupabaseClient,
@@ -174,7 +196,10 @@ const KICK_TIMEOUT_MS = 4000;
  * Сразу после события: обновить пульт админа и «Мои релизы» затронутых артистов.
  * Не бросает и не держит основной сценарий дольше нескольких секунд — остальное догонит минутный цикл.
  */
-export async function kickWidgets(artistTelegramIds: Array<string | number | null | undefined> = []): Promise<void> {
+export async function kickWidgets(
+  artistTelegramIds: Array<string | number | null | undefined> = [],
+  opts: { ensureCard?: boolean } = {}
+): Promise<void> {
   const admin = createSupabaseAdmin();
   if (!admin || !process.env.TELEGRAM_BOT_TOKEN?.trim()) return;
   const ids = artistTelegramIds.map((x) => (x == null ? "" : String(x).trim())).filter((x) => /^\d+$/.test(x));
@@ -182,6 +207,7 @@ export async function kickWidgets(artistTelegramIds: Array<string | number | nul
     try {
       await refreshWidgets(admin, { kinds: ["today"] });
       if (ids.length) await refreshWidgets(admin, { kinds: ["releases"], chatIds: ids });
+      if (ids.length && opts.ensureCard) await ensureReleasesCards(admin, ids);
     } catch (e) {
       console.error("[widgets] kick:", e);
     }
